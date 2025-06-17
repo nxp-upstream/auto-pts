@@ -25,6 +25,7 @@ from .tmap import TMAP_EV
 from .vcp import VCP_EV
 from .vcs import VCS_EV
 from .vocs import VOCS_EV
+from .hfp import HFP_EV
 
 # GENERATOR append 1
 
@@ -56,5 +57,6 @@ __all__ = [
     "VCP_EV",
     "VCS_EV",
     "VOCS_EV",
+    "HFP_EV",
 # GENERATOR append 2
 ]
