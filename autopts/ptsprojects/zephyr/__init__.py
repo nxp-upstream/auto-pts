@@ -48,6 +48,7 @@ from . import (
                vcp,
                vcs,
                vocs,
+               hfp,
 )
 
 __all__ = [
@@ -85,6 +86,7 @@ __all__ = [
     "vcp",
     "vcs",
     "vocs",
+    "hfp",
 ]
 
 # GENERATOR append 1
