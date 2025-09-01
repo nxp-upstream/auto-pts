@@ -26,6 +26,7 @@ from .tmap import TMAP_EV
 from .vcp import VCP_EV
 from .vcs import VCS_EV
 from .vocs import VOCS_EV
+from .avrcp import AVRCP_EV
 
 __all__ = [
     "AICS_EV",
@@ -56,4 +57,5 @@ __all__ = [
     "VCS_EV",
     "VOCS_EV",
     "A2DP_EV",
+    "AVRCP_EV",
 ]

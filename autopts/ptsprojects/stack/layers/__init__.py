@@ -43,4 +43,5 @@ from .tmap import *  # noqa: F403 # used in many files : TODO import directly in
 from .vcp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from .vcs import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from .vocs import *  # noqa: F403 # used in many files : TODO import directly in files not with *
+from .avrcp import *
 # GENERATOR append 1

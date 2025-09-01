@@ -497,3 +497,120 @@ class BIGEncryption:
     BROADCAST_CODE_REQUIRED = 0x01
     DECRYPTING = 0x02
     BAD_CODE = 0x03
+
+class AVCTPPassThroughOperation:
+    Operation_Select              = 0x00
+    Operation_Up                  = 0x01
+    Operation_Down                = 0x02
+    Operation_Left                = 0x03
+    Operation_Right               = 0x04
+    Operation_Right_Up            = 0x05
+    Operation_Right_Down          = 0x06
+    Operation_Left_Up             = 0x07
+    Operation_Left_Down           = 0x08
+    Operation_Root_Menu           = 0x09
+    Operation_Setup_Menu          = 0x0A
+    Operation_Contents_Menu       = 0x0B
+    Operation_Favorite_Menu       = 0x0C
+    Operation_Exit                = 0x0D
+    Operation_0                   = 0x20
+    Operation_1                   = 0x21
+    Operation_2                   = 0x22
+    Operation_3                   = 0x23
+    Operation_4                   = 0x24
+    Operation_5                   = 0x25
+    Operation_6                   = 0x26
+    Operation_7                   = 0x27
+    Operation_8                   = 0x28
+    Operation_9                   = 0x29
+    Operation_Dot                 = 0x2A
+    Operation_Enter               = 0x2B
+    Operation_Clear               = 0x2C
+    Operation_Channel_Up          = 0x30
+    Operation_Channel_Down        = 0x31
+    Operation_Previous_Channel    = 0x32
+    Operation_Sound_Select        = 0x33
+    Operation_Input_Select        = 0x34
+    Operation_Display_Information = 0x35
+    Operation_Help                = 0x36
+    Operation_Page_Up             = 0x37
+    Operation_Page_Down           = 0x38
+    Operation_Power               = 0x40
+    Operation_Volume_Up           = 0x41
+    Operation_Volume_Down         = 0x42
+    Operation_Mute                = 0x43
+    Operation_Play                = 0x44
+    Operation_Stop                = 0x45
+    Operation_Pause               = 0x46
+    Operation_Record              = 0x47
+    Operation_Rewind              = 0x48
+    Operation_Fast_Forward        = 0x49
+    Operation_Eject               = 0x4A
+    Operation_Forward             = 0x4B
+    Operation_Backward            = 0x4C
+    Operation_Angle               = 0x50
+    Operation_Subpicture          = 0x51
+    Operation_F1                  = 0x71
+    Operation_F2                  = 0x72
+    Operation_F3                  = 0x73
+    Operation_F4                  = 0x74
+    Operation_F5                  = 0x75
+    Operation_Vendor_Unique       = 0x7E
+
+class AVRCPVendorUiqueOperationID:
+    Next_Group     = 0x0000
+    Previous_Group = 0x0001
+
+class AVRCPSpecificOperation:
+    # Capabilities
+    Get_Capabilities = 0x10
+    # Player Application Settings
+    List_Player_Application_Setting_Attributes    = 0x11
+    List_Player_Application_Setting_Values        = 0x12
+    Get_Current_Player_Application_Setting_Value  = 0x13
+    Set_Player_Application_Setting_Value          = 0x14
+    Get_Player_Application_Setting_Attribute_Text = 0x15
+    Get_Player_Application_Setting_Value_Text     = 0x16
+    # TD: 0x17, 0x18 
+    # Metadata Attributes for Current Media Item
+    Get_Element_Attributes = 0x20
+    # Notifications
+    Get_Play_Status        = 0x30
+    Register_Notification  = 0x31
+    # Absolute Volume
+    Set_Absolute_Volume                = 0x50
+    # MediaPlayerSelection
+    Set_Addressed_Player               = 0x60
+    Get_Folder_Items_Media_Player_List = 0x71
+    Get_Total_Number_Of_Items          = 0x75
+    # Browsing
+    Set_Browse_Player   = 0x70
+    Change_Path         = 0x72
+    Get_Item_Attributes = 0x73
+    PLAY_ITEM           = 0x74
+    # Search
+    Search              = 0x80
+    # NowPlaying
+    Add_To_Now_Playing  = 0x90
+
+
+class AVRCPMediaContentNavigationScope:
+    Media_Player_List               = 0x00
+    Media_Player_Virtual_Filesystem = 0x01
+    Search                          = 0x02
+    Now_Playing                     = 0x03
+
+class AVRCPNotificationEvents:
+    EVENT_PLAYBACK_STATUS_CHANGED            = 0x01
+    EVENT_TRACK_CHANGED                      = 0x02
+    EVENT_TRACK_REACHED_END                  = 0x03
+    EVENT_TRACK_REACHED_START                = 0x04
+    EVENT_PLAYBACK_POS_CHANGED               = 0x05
+    EVENT_BATT_STATUS_CHANGED                = 0x06
+    EVENT_SYSTEM_STATUS_CHANGED              = 0x07
+    EVENT_PLAYER_APPLICATION_SETTING_CHANGED = 0x08
+    EVENT_NOW_PLAYING_CONTENT_CHANGED        = 0x09
+    EVENT_AVAILABLE_PLAYERS_CHANGED          = 0x0a
+    EVENT_ADDRESSED_PLAYER_CHANGED           = 0x0b
+    EVENT_UIDS_CHANGED                       = 0x0c
+    EVENT_VOLUME_CHANGED                     = 0x0d
