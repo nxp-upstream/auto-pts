@@ -25,7 +25,9 @@ from autopts.pybtp.types import (
     AVRCPMediaContentNavigationScope,
     AVCTPPassThroughOperation,
     AVRCPNotificationEvents,
-    AVRCPVendorUiqueOperationID
+    AVRCPVendorUiqueOperationID,
+    AVRCPPlayerAppSettingAttrIDs,
+    AVRCPPlayerAppSettingEqualizerValIDs,
 )
 from autopts.wid import generic_wid_hdl
 
@@ -43,10 +45,55 @@ def hdl_wid_1(params: WIDParams):
 
     return True
 
+def hdl_wid_7(_: WIDParams):
+    """
+    description: PTS has sent a Get Current Player Application Setting Value command with an invalid Attribute.
+    The IUT must respond with the error code: Invalid Parameter (0x01).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CUR_PLAYER_APP_VAL_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_10(_: WIDParams):
+    """
+    description: PTS has sent a Get Player Application Setting Attribute Text command with an invalid Attribute Id.
+    The IUT must respond with the error code: Invalid Parameter (0x01).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_ATTR_TXT_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_11(_: WIDParams):
+    """
+    description: PTS has sent a Get Player Application Setting Value Text command with an invalid Value.
+    The IUT must respond with the error code: Invalid Parameter (0x01).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_VAL_TXT_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_13(_: WIDParams):
+    """
+    description: PTS has sent a List Player Application Setting Values command with an invalid Attribute Id.
+    The IUT must respond with the error code: Invalid Parameter (0x01).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_VAL_REQ) is None:
+        return False
+    return True
+
 def hdl_wid_12(_: WIDParams):
     """
     description: The IUT should reject the invalid Get Capabilities command sent by PTS.
     """
+    return True
+
+def hdl_wid_19(_: WIDParams):
+    """
+    description: PTS has sent a Set Player Application Setting Value command with an invalid Attribute and Value.
+    The IUT must respond with the error code: Invalid Parameter (0x01).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_PLAYER_APP_VAL_REQ) is None:
+        return False
     return True
 
 def hdl_wid_82(_: WIDParams):
@@ -80,6 +127,7 @@ def hdl_wid_85(_: WIDParams):
     btp.gap_wait_for_connection()
 
     return True
+
 
 def hdl_wid_650(_: WIDParams):
     """
@@ -2482,7 +2530,6 @@ def hdl_wid_1016(_: WIDParams):
     """
     btp.gap_wait_for_connection()
     btp.a2dp_connect(None)
-
     return True
 
 def hdl_wid_1042(_: WIDParams):
@@ -2528,16 +2575,14 @@ def hdl_wid_2005(_: WIDParams):
     description: Take action to initiate a browsing channel connection by sending a connection request to the PTS from the IUT.
     """
     btp.avrcp_browsing_connect()
-
-    return True
+    return btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_BROWSING_CONNECTED)
 
 def hdl_wid_2006(_: WIDParams):
     """
     description: Take action to initiate a control channel connection by sending a connection request to the PTS from the IUT.
     """
     btp.avrcp_control_connect()
-
-    return True
+    return btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CONTROL_CONNECTED)
 
 def hdl_wid_2007(_: WIDParams):
     """
@@ -2546,7 +2591,8 @@ def hdl_wid_2007(_: WIDParams):
     stack = get_stack()
     if stack.avrcp.is_connected(btp.pts_addr_get(None), defs.BTP_AVRCP_EV_BROWSING_CONNECTED):
         btp.avrcp_browsing_disconnect()
-
+        if not btp.avrcp_wait_for_disconnection(defs.BTP_AVRCP_EV_BROWSING_CONNECTED):
+            return False
     return True
 
 def hdl_wid_2008(_: WIDParams):
@@ -2556,15 +2602,72 @@ def hdl_wid_2008(_: WIDParams):
     stack = get_stack()
     if stack.avrcp.is_connected(btp.pts_addr_get(None), defs.BTP_AVRCP_EV_BROWSING_CONNECTED):
         btp.avrcp_browsing_disconnect()
+        if not btp.avrcp_wait_for_disconnection(defs.BTP_AVRCP_EV_BROWSING_CONNECTED):
+            return False
     btp.avrcp_control_disconnect()
-
-    return True
+    return btp.avrcp_wait_for_disconnection(defs.BTP_AVRCP_EV_CONTROL_CONNECTED)
 
 def hdl_wid_3004(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Capabilities] command sent by the PTS.
     """
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CAP_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3005(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Current Player Application Setting Value] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CUR_PLAYER_APP_VAL_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3006(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Element Attributes] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEM_ATTR_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3013(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Play Status] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAY_STATUS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3014(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Player Application Setting Attribute Text] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_ATTR_TXT_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3015(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Player Application Setting Value Text] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_VAL_TXT_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3017(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [List Player Application Setting Attributes] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_ATTR_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3018(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [List Player Application Setting Values] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_VAL_REQ) is None:
         return False
     return True
 
@@ -2588,23 +2691,27 @@ def hdl_wid_3032(_: WIDParams):
     """
     description: Take action to send a [Get Capabilities] command to the PTS from the IUT.
     """
-    btp.avrcp_get_cap(b'\x02') # COMPANY_ID (0x2)
+    btp.avrcp_get_cap(2) # COMPANY_ID (0x2)
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CAP_RSP) is None:
         return False
     return True
 
 def hdl_wid_3035(_: WIDParams):
     """
-    description: Take action to send a [Set Addressed Player] command to the PTS from the IUT.
+    description: Take action to send a [Get Current Player Application Setting Value] command to the PTS from the IUT.
     """
-
+    btp.avrcp_get_cur_player_app_val_attr([AVRCPPlayerAppSettingAttrIDs.EQUALIZER])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CUR_PLAYER_APP_VAL_RSP) is None:
+        return False
     return True
 
 def hdl_wid_3036(_: WIDParams):
     """
-    description: Take action to send a [Set Browsed Player] command to the PTS from the IUT.
+    description: Take action to send a [Get Element Attributes] command to the PTS from the IUT.
     """
-
+    btp.avrcp_get_elem_attr(0)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_CMD_GET_ELEM_ATTR) is None:
+        return False
     return True
 
 def hdl_wid_3037(_: WIDParams):
@@ -2612,6 +2719,85 @@ def hdl_wid_3037(_: WIDParams):
     description: Take action to send a [Get Folder Items] command with the scope of <Media Player List> to the PTS from the IUT.
     """
 
+    return True
+
+def hdl_wid_3045(_: WIDParams):
+    """
+    description: Take action to send a [Get Play Status] command to the PTS from the IUT.
+    """
+    btp.avrcp_get_play_status()
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAY_STATUS_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3046(_: WIDParams):
+    """
+    description: Take action to send a [Get Player Application Setting Attribute Text] command to the PTS from the IUT.
+    """
+    btp.avrcp_get_player_app_attr_txt([AVRCPPlayerAppSettingAttrIDs.EQUALIZER])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_ATTR_TXT_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3047(_: WIDParams):
+    """
+    description: Take action to send a [Get Player Application Setting Value Text] command to the PTS from the IUT.
+    """
+    btp.avrcp_get_player_app_val_txt(AVRCPPlayerAppSettingAttrIDs.EQUALIZER, [AVRCPPlayerAppSettingEqualizerValIDs.OFF])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_VAL_TXT_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3048(_: WIDParams):
+    """
+    description: Take action to send a [List Player Application Setting Attributes] command to the PTS from the IUT.
+    """
+    btp.avrcp_list_player_app_attr()
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_ATTR_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3049(_: WIDParams):
+    """
+    description: Take action to send a [List Player Application Setting Values] command to the PTS from the IUT.
+    """
+    btp.avrcp_list_player_app_val(AVRCPPlayerAppSettingAttrIDs.EQUALIZER)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_VAL_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3062(_: WIDParams):
+    """
+    description: Take action to trigger a [Register Notification, Changed] response for <Player Application Setting Changed> to the PTS from the IUT.
+    This can be accomplished by changing a Player Application Setting (Equalizer, Repeat Mode, Shuffle, Scan) on the IUT.
+    """
+    btp.avrcp_tg_register_notify(AVRCPNotificationEvents.EVENT_PLAYER_APPLICATION_SETTING_CHANGED, b'\x01\x01\x02')
+    return True
+
+def hdl_wid_3064(_: WIDParams):
+    """
+    description: Take action to trigger a [Register Notification, Changed] response for <Track Changed> to the PTS from the IUT.
+    This can be accomplished by changing the currently playing track on the IUT.
+    """
+    btp.avrcp_tg_register_notify(AVRCPNotificationEvents.EVENT_TRACK_CHANGED, 1)
+    return True
+
+def hdl_wid_3069(_: WIDParams):
+    """
+    description: Take action to send a [Register Notification] command to the PTS from the IUT.
+    """
+    btp.avrcp_register_notify(AVRCPNotificationEvents.EVENT_PLAYBACK_POS_CHANGED, 1)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_REGISTER_NOTIFY_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3087(_: WIDParams):
+    """
+    description: Take action to send a [Set Player Application Setting Value] command to the PTS from the IUT.
+    """
+    btp.avrcp_set_player_app_val([(AVRCPPlayerAppSettingAttrIDs.EQUALIZER, AVRCPPlayerAppSettingEqualizerValIDs.OFF)])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_PLAYER_APP_VAL_RSP) is None:
+        return False
     return True
 
 def hdl_wid_3088(_: WIDParams):

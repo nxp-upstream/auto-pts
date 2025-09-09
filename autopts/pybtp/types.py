@@ -614,3 +614,29 @@ class AVRCPNotificationEvents:
     EVENT_ADDRESSED_PLAYER_CHANGED           = 0x0b
     EVENT_UIDS_CHANGED                       = 0x0c
     EVENT_VOLUME_CHANGED                     = 0x0d
+
+class AVRCPPlayerAppSettingAttrIDs:
+    EQUALIZER = 0x01
+    REPEAT_MODE = 0x02
+    SHUFFLE = 0x03
+    SCAN = 0x04
+
+class AVRCPPlayerAppSettingEqualizerValIDs:
+    OFF = 0x01
+    ON = 0x02
+
+class AVRCPPlayerAppSettingRepeatModeValIDs:
+    OFF = 0x01
+    SINGLE_TRACK_REPEAT = 0x02
+    ALL_TRACK_REPEAT = 0x03
+    GROUP_REPEAT = 0x04
+
+class AVRCPPlayerAppSettingShuffleValIDs:
+    OFF = 0x01
+    ALL_TRACKS_SHUFFLE = 0x02
+    GROUP_SHUFFLE = 0x03
+
+class AVRCPPlayerAppSettingScanValIDs:
+    OFF = 0x01
+    ALL_TRACKS_SCAN = 0x02
+    GROUP_SCAN = 0x03
