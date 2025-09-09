@@ -122,4 +122,5 @@ ID  Name
  0x1f SDP Service
  0x23 A2DP Service
  0x25 AVRCP Service
+ 0x26 AVCTP Service
  # GENERATOR append 1

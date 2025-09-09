@@ -45,6 +45,7 @@ from autopts.ptsprojects.stack.layers.vcp import VCP
 from autopts.ptsprojects.stack.layers.vcs import VCS
 from autopts.ptsprojects.stack.layers.vocs import VOCS
 from autopts.ptsprojects.stack.layers.avrcp import AVRCP
+from autopts.ptsprojects.stack.layers.avctp import AVCTP
 from autopts.ptsprojects.stack.synch import Synch
 from autopts.pybtp import common
 
@@ -88,6 +89,7 @@ class Stack:
         self.sdp = None
         self.a2dp = None
         self.avrcp = None
+        self.avctp = None
         # GENERATOR append 2
         self.supported_svcs_cmds = common.supported_svcs_cmds
 
@@ -201,6 +203,9 @@ class Stack:
     def avrcp_init(self):
         self.avrcp = AVRCP()
 
+    def avctp_init(self):
+        self.avctp = AVCTP()
+
     # GENERATOR append 3
 
     def cleanup(self):
@@ -293,6 +298,9 @@ class Stack:
 
         if self.avrcp:
             self.avrcp_init()
+
+        if self.avctp:
+            self.avctp_init()
 
         # GENERATOR append 4
 

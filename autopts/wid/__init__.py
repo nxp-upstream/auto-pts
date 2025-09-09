@@ -45,6 +45,7 @@ from .vcs import vcs_wid_hdl
 from .vocs import vocs_wid_hdl
 from .wid import generic_wid_hdl
 from .avrcp import avrcp_wid_hdl
+from .avctp import avctp_wid_hdl
 
 __all__ = [
     "aics_wid_hdl",
@@ -78,6 +79,7 @@ __all__ = [
     "vocs_wid_hdl",
     "generic_wid_hdl",
     "avrcp_wid_hdl",
+    "avctp_wid_hdl",
 ]
 
 # GENERATOR append 1

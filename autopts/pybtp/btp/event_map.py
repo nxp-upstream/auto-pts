@@ -27,6 +27,7 @@ from .vcp import VCP_EV
 from .vcs import VCS_EV
 from .vocs import VOCS_EV
 from .avrcp import AVRCP_EV
+from .avctp import AVCTP_EV
 
 __all__ = [
     "AICS_EV",
@@ -58,4 +59,5 @@ __all__ = [
     "VOCS_EV",
     "A2DP_EV",
     "AVRCP_EV",
+    "AVCTP_EV",
 ]

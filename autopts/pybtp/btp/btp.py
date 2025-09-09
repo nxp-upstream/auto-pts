@@ -609,6 +609,10 @@ def core_reg_svc_avrcp():
     core_reg_svc_univ("avrcp_reg", "AVRCP")
 
 
+def core_reg_svc_avctp():
+    core_reg_svc_univ("avctp_reg", "AVCTP")
+
+
 # GENERATOR append 1
 
 def core_reg_svc_rsp_succ(service_name):
@@ -724,6 +728,7 @@ def event_handler(hdr, data):
         VCS_EV,
         VOCS_EV,
         AVRCP_EV,
+        AVCTP_EV,
     )
     stack = get_stack()
     if not stack:
@@ -760,6 +765,7 @@ def event_handler(hdr, data):
         defs.BTP_SERVICE_ID_SDP: (SDP_EV, stack.sdp),
         defs.BTP_SERVICE_ID_A2DP: (A2DP_EV, stack.a2dp),
         defs.BTP_SERVICE_ID_AVRCP: (AVRCP_EV, stack.avrcp),
+        defs.BTP_SERVICE_ID_AVCTP: (AVCTP_EV, stack.avctp),
         # GENERATOR append 3
     }
 
