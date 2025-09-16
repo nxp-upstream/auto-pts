@@ -53,6 +53,8 @@ A2DP = {
                             CONTROLLER_INDEX),
     "send_delay_report": (defs.BTP_SERVICE_ID_A2DP, defs.BTP_A2DP_SEND_DELAY_REPORT,
                           CONTROLLER_INDEX),
+    "get_config": (defs.BTP_SERVICE_ID_A2DP, defs.BTP_A2DP_CMD_GET_CONFIG,
+                CONTROLLER_INDEX),
 }
 
 
@@ -165,6 +167,14 @@ def a2dp_ev_abort_rsp(a2dp, data, data_len):
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_ABORT_RSP]
 
+
+def a2dp_ev_get_config_rsp(a2dp, data, data_len):
+    logging.debug('%s %r', a2dp_ev_get_config_rsp.__name__, data)
+    stack = get_stack()
+    errcode = struct.unpack_from('<B', data, 0)
+
+    if errcode == 0:
+        stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_GET_CONFIG_RSP]
 
 def a2dp_ev_recv_media(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_recv_media.__name__, data)
@@ -335,6 +345,17 @@ def a2dp_abort():
     a2dp_command_rsp_succ(defs.BTP_A2DP_CMD_ABORT)
     btp.a2dp_wait_for_command_rsp(defs.BTP_A2DP_EV_ABORT_RSP)
 
+def a2dp_get_config():
+    logging.debug("%s", a2dp_get_config.__name__)
+    iutctl = get_iut()
+
+    data_ba = ''
+
+    iutctl.btp_socket.send(*A2DP['get_config'], data=data_ba)
+
+    a2dp_command_rsp_succ(defs.BTP_A2DP_CMD_GET_CONFIG)
+    btp.a2dp_wait_for_command_rsp(defs.BTP_A2DP_EV_GET_CONFIG_RSP)
+
 def a2dp_get_mmi_round(key):
     logging.debug("%s", a2dp_get_mmi_round.__name__)
     stack = get_stack()
@@ -360,4 +381,5 @@ A2DP_EV = {
     defs.BTP_A2DP_EV_ABORT_RSP: a2dp_ev_abort_rsp,
     defs.BTP_A2DP_EV_RECV_MEDIA: a2dp_ev_recv_media,
     defs.BTP_A2DP_EV_SEND_DELAY_REPORT_RSP: a2dp_ev_send_delay_report_rsp,
+    defs.BTP_A2DP_EV_GET_CONFIG_RSP: a2dp_ev_get_config_rsp,
 }

@@ -15,6 +15,7 @@
 
 from . import (
                a2dp,
+               avdtp,
                aics,
                ascs,
                bap,
@@ -53,6 +54,7 @@ from . import (
 
 __all__ = [
     "a2dp",
+    "avdtp",
     "aics",
     "ascs",
     "bap",
@@ -89,6 +91,7 @@ __all__ = [
     "vocs",
 ]
 
+import autopts.ptsprojects.zephyr.avdtp
 # GENERATOR append 1
 
 # Constants

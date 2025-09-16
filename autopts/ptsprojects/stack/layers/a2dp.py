@@ -35,7 +35,8 @@ class A2DP:
             defs.BTP_A2DP_EV_SUSPEND_RSP: 'SUSPENDED',
             defs.BTP_A2DP_EV_DISCONNECTED: 'DISCONNECTED',
             defs.BTP_A2DP_EV_ABORT_RSP: 'ABORTED',
-            defs.BTP_A2DP_EV_SEND_DELAY_REPORT_RSP: 'SEND_DELAY_REPORT_RSP'
+            defs.BTP_A2DP_EV_SEND_DELAY_REPORT_RSP: 'SEND_DELAY_REPORT_RSP',
+            defs.BTP_A2DP_EV_GET_CONFIG_RSP: 'GET_CONFIGURATION',
         }
         self.status = self.STATUS[defs.BTP_A2DP_EV_DISCONNECTED]
         self.media = []
