@@ -321,17 +321,15 @@ def avrcp_get_play_status(bd_addr=None):
     iutctl.btp_socket.send(*AVRCP['get_play_status'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_PLAY_STATUS)
 
-def avrcp_get_elem_attr(num_attrs, attrs=None, bd_addr=None):
-    logging.debug("%s %r %r %r", avrcp_get_elem_attr.__name__, bd_addr, num_attrs, attrs)
+def avrcp_get_elem_attr(attrs: list, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_get_elem_attr.__name__, bd_addr, attrs)
     iutctl = get_iut()
 
     data_ba = bytearray()
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
-    data_ba.extend(struct.pack('B', num_attrs))
-    if num_attrs > 0:
-        if attrs is None:
-            raise BTPError("attrs shouldn't be None when num_attrs > 0")
-        data_ba.extend(attrs)
+    data_ba.extend(struct.pack('B', len(attrs)))
+    for attr in attrs:
+        data_ba.extend(struct.pack('>I', attr))
 
     iutctl.btp_socket.send(*AVRCP['get_elem_attr'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_ELEM_ATTR)
@@ -346,11 +344,61 @@ def avrcp_register_notify(event_id, interval=0, bd_addr=None):
     if event_id == AVRCPNotificationEvents.EVENT_PLAYBACK_POS_CHANGED:
         if interval == 0:
             raise BTPError("interval shouldn't be 0 when event_id is EVENT_PLAYBACK_POS_CHANGED")
-        data_ba.extend(struct.pack('>I', interval))
+    data_ba.extend(struct.pack('>I', interval))
 
     iutctl.btp_socket.send(*AVRCP['register_notify'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_REGISTER_NOTIFY)
 
+def avrcp_set_absolute_vol(volume, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_set_absolute_vol.__name__, bd_addr, volume)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(struct.pack('B', volume))
+
+    iutctl.btp_socket.send(*AVRCP['set_absolute_vol'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_SET_ABSOLUTE_VOL)
+
+def avrcp_set_addressed_player(player_id, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_set_addressed_player.__name__, bd_addr, player_id)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(struct.pack('>H', player_id))
+
+    iutctl.btp_socket.send(*AVRCP['set_addressed_player'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_SET_ADDRESSED_PLAYER)
+
+def avrcp_get_folder_item(scope, start_item, end_item, attr_cnt, attr_list: list, bd_addr=None):
+    logging.debug("%s %r %r %r %r %r %r", avrcp_get_folder_item.__name__, bd_addr, scope, start_item, end_item, attr_cnt, attr_list)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(struct.pack('<I', start_item))
+    data_ba.extend(struct.pack('<I', end_item))
+    data_ba.extend(struct.pack('B', attr_cnt))
+    if attr_cnt >= 0x01 and attr_cnt <= 0xFE:
+        if len[attr_list] != attr_cnt:
+            raise BTPError("attr_list should be the same as attr_cnt when attr_cnt is 0x01~0xFE")
+        for attr in attr_list:
+            data_ba.extend(struct.pack('B', attr))
+
+    iutctl.btp_socket.send(*AVRCP['get_folder_item'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_FOLDER_ITEM)
+
+def avrcp_set_browsed_player(player_id, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_set_browsed_player.__name__, bd_addr, player_id)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(struct.pack('<H', player_id))
+
+    iutctl.btp_socket.send(*AVRCP['set_browsed_player'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_SET_BROWSED_PLAYER)
 
 def avrcp_tg_register_notify(event_id, payload=None, bd_addr=None):
     logging.debug("%s %r %r %r", avrcp_tg_register_notify.__name__, bd_addr, event_id, payload)
@@ -363,14 +411,16 @@ def avrcp_tg_register_notify(event_id, payload=None, bd_addr=None):
         if payload is None:
             raise BTPError("payload shouldn't be None")
         uid = struct.pack('>Q', payload)
-        # data_ba.extend(struct.pack('B', len(uid)))
         data_ba.extend(uid)
     elif event_id == AVRCPNotificationEvents.EVENT_PLAYER_APPLICATION_SETTING_CHANGED:
         if payload is None:
             raise BTPError("payload shouldn't be None")
-        # data_ba.extend(struct.pack('B', len(payload)))
         data_ba.extend(payload)
-
+    elif event_id == AVRCPNotificationEvents.EVENT_VOLUME_CHANGED:
+        if payload is None:
+            raise BTPError("payload shouldn't be None")
+        volume = struct.pack('B', payload)
+        data_ba.extend(volume)
 
     iutctl.btp_socket.send(*AVRCP['tg_register_notify'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_TG_REGISTER_NOTIFY)

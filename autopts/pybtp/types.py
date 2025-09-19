@@ -498,6 +498,8 @@ class BIGEncryption:
     DECRYPTING = 0x02
     BAD_CODE = 0x03
 
+BLUETOOTH_SIG_VENDOR_ID = 0x001958
+
 class AVCTPPassThroughOperation:
     Operation_Select              = 0x00
     Operation_Up                  = 0x01

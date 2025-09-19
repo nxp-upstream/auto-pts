@@ -26,9 +26,26 @@ def set_pixits(ptses):
     pts = ptses[0]
 
     pts.set_pixit("AVRCP", "TSPX_security_enabled", "FALSE")
-    pts.set_pixit("AVRCP", "TSPX_time_guard", "600000")
-    pts.set_pixit("AVRCP", "TSPX_use_implicit_send", "TRUE")
+    pts.set_pixit("AVRCP", "TSPX_bd_addr_iut", "A0CDF377E54B")
+    pts.set_pixit("AVRCP", "TSPX_class_of_device", "20050C")
+    pts.set_pixit("AVRCP", "TSPX_player_feature_bitmask", "FFFFFFFFFFFFFF7F1F00000000000000")
+    pts.set_pixit("AVRCP", "TSPX_pin_code", "0000")
     pts.set_pixit("AVRCP", "TSPX_delete_link_key", "TRUE")
+    pts.set_pixit("AVRCP", "TSPX_time_guard", "600000")
+    pts.set_pixit("AVRCP", "TSPX_avrcp_only", "FALSE")
+    pts.set_pixit("AVRCP", "TSPX_search_string", "3")
+    pts.set_pixit("AVRCP", "TSPX_establish_avdtp_stream", "TRUE")
+    pts.set_pixit("AVRCP", "TSPX_use_implicit_send", "TRUE")
+    pts.set_pixit("AVRCP", "TSPX_avrcp_version", "")
+    pts.set_pixit("AVRCP", "TSPX_tester_av_role", "")
+    pts.set_pixit("AVRCP", "TSPX_auth_password", "0000")
+    pts.set_pixit("AVRCP", "TSPX_auth_user_id", "PTS")
+    pts.set_pixit("AVRCP", "TSPX_rfcomm_channel", "8")
+    pts.set_pixit("AVRCP", "TSPX_l2cap_psm", "1011")
+    pts.set_pixit("AVRCP", "TSPX_no_confirmations", "FALSE")
+    pts.set_pixit("AVRCP", "TSPX_no_cover_art_folder", "")
+    pts.set_pixit("AVRCP", "TSPX_tester_initiates_connection", "TRUE")
+    pts.set_pixit("AVRCP", "TSPX_empty_folder", "")
 
 
 def test_cases(ptses):

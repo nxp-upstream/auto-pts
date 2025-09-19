@@ -15,12 +15,15 @@
 
 import logging
 import time
+import struct
+import re
 
 from autopts.ptsprojects.stack import get_stack
 from autopts.ptsprojects.testcase import MMI
 from autopts.pybtp import btp, defs
 from autopts.pybtp.types import (
     WIDParams,
+    BLUETOOTH_SIG_VENDOR_ID,
     AVRCPSpecificOperation,
     AVRCPMediaContentNavigationScope,
     AVCTPPassThroughOperation,
@@ -72,6 +75,12 @@ def hdl_wid_11(_: WIDParams):
         return False
     return True
 
+def hdl_wid_12(_: WIDParams):
+    """
+    description: The IUT should reject the invalid Get Capabilities command sent by PTS.
+    """
+    return True
+
 def hdl_wid_13(_: WIDParams):
     """
     description: PTS has sent a List Player Application Setting Values command with an invalid Attribute Id.
@@ -81,10 +90,13 @@ def hdl_wid_13(_: WIDParams):
         return False
     return True
 
-def hdl_wid_12(_: WIDParams):
+def hdl_wid_16(_: WIDParams):
     """
-    description: The IUT should reject the invalid Get Capabilities command sent by PTS.
+    description: PTS has sent a Set Absolute Volume command with an invalid Parameter Length.
+    The IUT must respond with a correctly formatted Set Absolute Volume response, indicating failure.
     """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOL_REQ) is None:
+        return False
     return True
 
 def hdl_wid_19(_: WIDParams):
@@ -94,6 +106,63 @@ def hdl_wid_19(_: WIDParams):
     """
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_PLAYER_APP_VAL_REQ) is None:
         return False
+    return True
+
+def hdl_wid_20(_: WIDParams):
+    """
+    description: Take action to reject all player specific notifications with AV/C type rejected.
+    This can be done by selecting a new Addressed Player from the IUT.
+    """
+    btp.avrcp_tg_register_notify(AVRCPNotificationEvents.EVENT_ADDRESSED_PLAYER_CHANGED)
+    return True
+
+def hdl_wid_23(_: WIDParams):
+    """
+    description: Place the IUT into a state where no track is currently selected, then press 'OK' to continue.
+    """
+    return True
+
+def hdl_wid_24(_: WIDParams):
+    """
+    description: Start playing a media item with at least 512 bytes worth of metadata, then press 'OK'.
+    """
+    return True
+
+def hdl_wid_25(_: WIDParams):
+    """
+    description: Addressed Player Changed notification has been received.  Now all registered player specific notifications must be rejected.
+    """
+    time.sleep(3)
+    return True
+
+def hdl_wid_27(_: WIDParams):
+    """
+    description: PTS has indicated that the current that the absolute volume is 50%, does the IUT correctly display the updated volume level?
+    """
+    return True
+
+def hdl_wid_39(_: WIDParams):
+    """
+    description: Please check the current absolute volume on the IUT.  Press 'OK' to continue.
+    """
+    return True
+
+def hdl_wid_40(_: WIDParams):
+    """
+    description: If the absolute volume has changed press 'OK' otherwise press 'Cancel'.
+    """
+    return True
+
+def hdl_wid_41(_: WIDParams):
+    """
+    description: PTS has sent an invalid command over the control channel.  The IUT must respond with a general reject on the control channel.
+    """
+    return True
+
+def hdl_wid_42(_: WIDParams):
+    """
+    description: PTS has sent an invalid command over the browsing channel.  The IUT must respond with a general reject on the browsing channel.
+    """
     return True
 
 def hdl_wid_82(_: WIDParams):
@@ -1986,7 +2055,12 @@ def hdl_wid_856(_: WIDParams):
     """
     description: Send a [VEMDPR UNIQUE] passthrough press and release to PTS.
     """
-    payload = b'\x00\x19\x58\x00\x00' # Company Id = 0x001958(Bluetooth SIG, Inc), Vendor Dependent Information = 0x0000
+    payload = bytearray()
+    vendor_id_low = BLUETOOTH_SIG_VENDOR_ID & 0xFFFF
+    vendor_id_high = (BLUETOOTH_SIG_VENDOR_ID >> 16) & 0xFF
+    payload.extend(struct.pack(">BH", vendor_id_high, vendor_id_low))
+    payload.extend(struct.pack(">H", AVRCPVendorUiqueOperationID.Next_Group))
+
     btp.avrcp_pass_through(AVCTPPassThroughOperation.Operation_Vendor_Unique, 0, payload)
     if btp.avrcp_wait_pass_though_rsp(AVCTPPassThroughOperation.Operation_Vendor_Unique, 0) is None:
         return False
@@ -2546,12 +2620,19 @@ def hdl_wid_2001(_: WIDParams):
 
     return True
 
-def hdl_wid_2002(_: WIDParams):
+def hdl_wid_2002(params: WIDParams):
     """
     description: Please wait while PTS creates an AVCTP control channel connection.
     """
     btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CONTROL_CONNECTED)
-
+    if params.test_case_name in ['AVRCP/CT/VLH/BV-04-C']:
+        btp.avrcp_register_notify(AVRCPNotificationEvents.EVENT_VOLUME_CHANGED)
+        if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_REGISTER_NOTIFY_RSP) is None:
+            return False
+    elif params.test_case_name in ['AVRCP/CT/VLH/BV-05-C']:
+        btp.avrcp_set_absolute_vol(0x3F)
+        if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOL_RSP) is None:
+            return False
     return True
 
 def hdl_wid_2003(_: WIDParams):
@@ -2671,6 +2752,30 @@ def hdl_wid_3018(_: WIDParams):
         return False
     return True
 
+def hdl_wid_3021(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Set Absolute Volume] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOL_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3022(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Set Addressed Player] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ADDRESSED_PLAYER_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3023(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Set Browsed Player] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_BROWSED_PLAYER_REQ) is None:
+        return False
+    return True
+
 def hdl_wid_3024(_: WIDParams):
     """
     description: Take action to send a valid response to the [Subunit Info] command sent by the PTS.
@@ -2709,7 +2814,7 @@ def hdl_wid_3036(_: WIDParams):
     """
     description: Take action to send a [Get Element Attributes] command to the PTS from the IUT.
     """
-    btp.avrcp_get_elem_attr(0)
+    btp.avrcp_get_elem_attr([])
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_CMD_GET_ELEM_ATTR) is None:
         return False
     return True
@@ -2718,7 +2823,9 @@ def hdl_wid_3037(_: WIDParams):
     """
     description: Take action to send a [Get Folder Items] command with the scope of <Media Player List> to the PTS from the IUT.
     """
-
+    btp.avrcp_get_folder_item(AVRCPMediaContentNavigationScope.Media_Player_List, 0, 10, 0, [])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_CMD_GET_FOLDER_ITEM) is None:
+        return False
     return True
 
 def hdl_wid_3045(_: WIDParams):
@@ -2766,11 +2873,62 @@ def hdl_wid_3049(_: WIDParams):
         return False
     return True
 
+def hdl_wid_3050(_: WIDParams):
+    """
+    description: Take action to send a Group Navigation [Passthrough] command for <Next Group> to the PTS from the IUT.
+    PTS expects to receive a Press and Release for this command.
+    """
+    payload = bytearray()
+    vendor_id_low = BLUETOOTH_SIG_VENDOR_ID & 0xFFFF
+    vendor_id_high = (BLUETOOTH_SIG_VENDOR_ID >> 16) & 0xFF
+    payload.extend(struct.pack(">BH", vendor_id_high, vendor_id_low))
+    payload.extend(struct.pack(">H", AVRCPVendorUiqueOperationID.Next_Group))
+
+    if not hasattr(hdl_wid_3050, "state"):
+        hdl_wid_3050.state = 0
+
+    btp.avrcp_pass_through(AVCTPPassThroughOperation.Operation_Vendor_Unique, hdl_wid_3050.state, payload)
+    if btp.avrcp_wait_pass_though_rsp(AVCTPPassThroughOperation.Operation_Vendor_Unique, hdl_wid_3050.state) is None:
+        return False
+    hdl_wid_3050.state ^= 1
+
+    return True
+
+def hdl_wid_3055(_: WIDParams):
+    """
+    description: Take action to send a Group Navigation [Passthrough] command for <Previous Group> to the PTS from the IUT.
+    PTS expects to receive a Press and Release for this command.
+    """
+    payload = bytearray()
+    vendor_id_low = BLUETOOTH_SIG_VENDOR_ID & 0xFFFF
+    vendor_id_high = (BLUETOOTH_SIG_VENDOR_ID >> 16) & 0xFF
+    payload.extend(struct.pack(">BH", vendor_id_high, vendor_id_low))
+    payload.extend(struct.pack(">H", AVRCPVendorUiqueOperationID.Previous_Group))
+
+    if not hasattr(hdl_wid_3055, "state"):
+        hdl_wid_3055.state = 0
+
+    btp.avrcp_pass_through(AVCTPPassThroughOperation.Operation_Vendor_Unique, hdl_wid_3055.state, payload)
+    if btp.avrcp_wait_pass_though_rsp(AVCTPPassThroughOperation.Operation_Vendor_Unique, hdl_wid_3055.state) is None:
+        return False
+    hdl_wid_3055.state ^= 1
+
+    return True
+
+def hdl_wid_3056(_: WIDParams):
+    """
+    description: Take action to trigger a [Register Notification, Changed] response for <Addressed Player Changed> to the PTS from the IUT.
+    This can be accomplished by changing the currently addressed 
+    """
+    btp.avrcp_tg_register_notify(AVRCPNotificationEvents.EVENT_AVAILABLE_PLAYERS_CHANGED)
+    return True
+
 def hdl_wid_3062(_: WIDParams):
     """
     description: Take action to trigger a [Register Notification, Changed] response for <Player Application Setting Changed> to the PTS from the IUT.
     This can be accomplished by changing a Player Application Setting (Equalizer, Repeat Mode, Shuffle, Scan) on the IUT.
     """
+    # NumAttributes=0x01, AttributeID1=0x01, ValueID1=0x02
     btp.avrcp_tg_register_notify(AVRCPNotificationEvents.EVENT_PLAYER_APPLICATION_SETTING_CHANGED, b'\x01\x01\x02')
     return True
 
@@ -2782,12 +2940,56 @@ def hdl_wid_3064(_: WIDParams):
     btp.avrcp_tg_register_notify(AVRCPNotificationEvents.EVENT_TRACK_CHANGED, 1)
     return True
 
+def hdl_wid_3068(_: WIDParams):
+    """
+    description: Take action to trigger a [Register Notification, Changed] response for <Volume Changed> to the PTS from the IUT.
+    This can be accomplished by changing the volume on the IUT.
+    """
+    btp.avrcp_tg_register_notify(AVRCPNotificationEvents.EVENT_VOLUME_CHANGED, 0x3F)
+    return True
+
 def hdl_wid_3069(_: WIDParams):
     """
     description: Take action to send a [Register Notification] command to the PTS from the IUT.
     """
     btp.avrcp_register_notify(AVRCPNotificationEvents.EVENT_PLAYBACK_POS_CHANGED, 1)
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_REGISTER_NOTIFY_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3082(_: WIDParams):
+    """
+    description: Take action to send a [Register Notification, Notify] command for <Volume Changed> notifications.
+    """
+    btp.avrcp_register_notify(AVRCPNotificationEvents.EVENT_VOLUME_CHANGED)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_REGISTER_NOTIFY_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3084(_: WIDParams):
+    """
+    description: Take action to send a [Set Absolute Volume] command to the PTS from the IUT.
+    """
+    btp.avrcp_set_absolute_vol(0x3F)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOL_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3085(_: WIDParams):
+    """
+    description: Take action to send a [Set Addressed Player] command to the PTS from the IUT.
+    """
+    btp.avrcp_set_addressed_player(1)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ADDRESSED_PLAYER_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3086(_: WIDParams):
+    """
+    description: Take action to send a [Set Browsed Player] command to the PTS from the IUT.
+    """
+    btp.avrcp_set_browsed_player(1)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_BROWSED_PLAYER_RSP) is None:
         return False
     return True
 
@@ -2815,6 +3017,19 @@ def hdl_wid_3089(_: WIDParams):
     """
     btp.avrcp_unit_info()
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_UNIT_INFO_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3110(params: WIDParams):
+    """
+    description: Take action to send a [Set Absolute Volume] command with [xx] to the PTS from the IUT.
+    """
+    match = re.search(r'\[(\d+)\]', params.description)
+    if match is None:
+        return False
+    volume = int(match.group(1))
+    btp.avrcp_set_absolute_vol(volume)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOL_REQ) is None:
         return False
     return True
 
