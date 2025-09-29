@@ -57,13 +57,11 @@ class AvrcpConnection:
 class AVRCP:
     def __init__(self):
         self.connections = []
-        # self.connections = {
-        #     defs.BTP_AVRCP_EV_CONTROL_CONNECTED: [],
-        #     defs.BTP_AVRCP_EV_BROWSING_CONNECTED: [],
-        # }
-        # self.event_queues = {
-        #     defs.BTP_AVRCP_EV_DUMMY_COMPLETED: [],
-        # }
+        self.media_player_items = []
+        self.virtual_filesystem_items = []
+        self.search_items = []
+        self.now_playing_items = []
+        self.uid_counter = 0
 
     def conn_lookup_addr(self, addr):
         for conn in self.connections:
@@ -131,39 +129,3 @@ class AVRCP:
             return None
 
         conn.rx_data_clear(ev, data)
-
-    # def add_connection(self, event_type, addr):
-    #     self.connections[event_type].append(addr)
-
-    # def remove_connection(self, event_type, addr):
-    #     return self.connections[event_type].remove(addr)
-
-    # def wait_for_connection(self, event_type, timeout, conn_count=1, addr=None):
-    #     if self.is_connected(event_type=event_type, conn_count=conn_count, addr=addr):
-    #         return True
-
-    #     return wait_for_event(timeout, self.is_connected, event_type=event_type,
-    #                           conn_count=conn_count, addr=addr)
-
-    # def wait_for_disconnection(self, event_type, timeout, addr=None):
-    #     if not self.is_connected(event_type=event_type, addr=addr):
-    #         return True
-
-    #     return wait_for_event(timeout, lambda: not self.is_connected(event_type=event_type,
-    #                                                                  addr=addr))
-
-    # def is_connected(self, event_type, conn_count=1, addr=None):
-    #     if addr:
-    #         return addr in self.connections[event_type]
-
-    #     return len(self.connections[event_type]) >= conn_count
-
-    # def event_received(self, event_type, event_data):
-    #     self.event_queues[event_type].append(event_data)
-
-    # def wait_dummyevent_completed_ev(self, addr_type, addr, timeout, remove=True):
-    #     return wait_for_queue_event(
-    #         self.event_queues[defs.BTP_AVRCP_EV_DUMMY_COMPLETED],
-    #         lambda _addr_type, _addr, *_:
-    #             (addr_type, addr) == (_addr_type, _addr),
-    #         timeout, remove)

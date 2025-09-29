@@ -93,8 +93,8 @@ def hdl_wid_39(_: WIDParams):
     """
     description: Take action to send the Get Element Attributes command with including all the attributes (0x00 - 0x08).
     """
-    btp.avrcp_get_elem_attr([0, 1, 2, 3, 4, 5, 6, 7, 8])
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_CMD_GET_ELEM_ATTR) is None:
+    btp.avrcp_get_element_attrs([0, 1, 2, 3, 4, 5, 6, 7, 8])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_RSP) is None:
         return False
     return True
 
@@ -187,7 +187,7 @@ def hdl_wid_3006(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Element Attributes] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEM_ATTR_REQ) is None:
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_REQ) is None:
         return False
     return True
 
@@ -195,6 +195,6 @@ def hdl_wid_3021(_: WIDParams):
     """
     description: Take action to send a valid response to the [Set Absolute Volume] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOL_REQ) is None:
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_REQ) is None:
         return False
     return True

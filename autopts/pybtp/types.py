@@ -642,3 +642,7 @@ class AVRCPPlayerAppSettingScanValIDs:
     OFF = 0x01
     ALL_TRACKS_SCAN = 0x02
     GROUP_SCAN = 0x03
+
+class AVRCPChangePathDirection:
+    FOLDER_UP = 0x00
+    FOLDER_DOWN = 0x01
