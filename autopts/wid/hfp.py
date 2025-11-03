@@ -145,7 +145,6 @@ def hdl_wid_5(params: WIDParams):
         btp.hfp_enable_slc(None, 1)
     sleep(3)
     if params.test_case_name in ['HFP/AG/TWC/BV-04-C']:
-        btp.hfp_control(defs.HFP_TWC_CALL)
         return True
     btp.hfp_ag_enable_call()
     return True
@@ -762,11 +761,14 @@ def hdl_wid_77(params: WIDParams):
     return True
 
 
-def hdl_wid_78(_: WIDParams):
+def hdl_wid_78(params: WIDParams):
     """
     1. TSPX_phone_number - the 1st call
     2. TSPX_second_phone_number - the 2nd call
     """
+    if params.test_case_name in ['HFP/AG/TWC/BV-04-C']:
+        return True
+
     btp.hfp_control(defs.HFP_TWC_CALL)
     return True
 
