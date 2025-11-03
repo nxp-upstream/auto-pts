@@ -523,13 +523,23 @@ def hfp_release_specified_call(index, flags=0):
 
     iutctl.btp_socket.send_wait_rsp(*HFP['release_specified_call'], data=data_ba)
 
-def hfp_set_ongoing_calls(flags=0):
+def hfp_set_ongoing_calls(number, type, status, dir, all=False, flags=0):
     logging.debug("%s", hfp_set_ongoing_calls.__name__)
+
     iutctl = get_iut()
 
     data_ba = bytearray()
+    data_ba.extend(struct.pack('B', type))
+    data_ba.extend(struct.pack('B', status))
+    data_ba.extend(struct.pack('B', dir))
+    if all:
+        data_ba.extend(struct.pack('B', 1))
+    else:
+        data_ba.extend(struct.pack('B', 0))
 
     data_ba.extend(struct.pack('B', flags))
+    data_ba.extend(struct.pack('B', len(number)))
+    data_ba.extend(number.encode('utf-8'))
 
     iutctl.btp_socket.send_wait_rsp(*HFP['set_ongoing_calls'], data=data_ba)
 
