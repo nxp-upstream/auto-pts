@@ -47,11 +47,14 @@ class HFP:
             timeout, remove)
 
     def new_call(self, number, type, index, dir):
+        status = defs.BTP_HFP_CALL_STATUS_DIALING
+        if dir == defs.BTP_HFP_CALL_DIR_INCOMING:
+            status = defs.BTP_HFP_CALL_STATUS_INCOMING
         call_info = {
             'number': number,
             'type': type,
             'dir': dir,
-            'status': None
+            'status': status
         }
         self.calls[index] = call_info
 
