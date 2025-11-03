@@ -137,6 +137,9 @@ HFP = {
     'ag_hold_incoming': (defs.BTP_SERVICE_ID_HFP,
                          defs.BTP_HFP_CMD_AG_HOLD_INCOMING,
                          CONTROLLER_INDEX),
+    'ag_last_dialed_number': (defs.BTP_SERVICE_ID_HFP,
+                         defs.BTP_HFP_CMD_AG_LAST_DIALED_NUMBER,
+                         CONTROLLER_INDEX),
 # BOND COMPLETION
 }
 
@@ -181,7 +184,7 @@ def hfp_signal_strength_send(strength, flags=0):
     iutctl.btp_socket.send_wait_rsp(*HFP['signal_strength_send'], data=data_ba)
 
 
-def hfp_control(index, value=1, flags=0):
+def hfp_control(index, value=0, flags=0):
     logging.debug("%s %r %r", hfp_control.__name__, index, value)
     iutctl = get_iut()
 
@@ -553,6 +556,19 @@ def hfp_ag_hold_incoming(flags=0):
 
     iutctl.btp_socket.send_wait_rsp(*HFP['ag_hold_incoming'], data=data_ba)
 
+def hfp_ag_last_dialed_number(number, type, flags=0):
+    logging.debug("%s", hfp_ag_last_dialed_number.__name__)
+
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(struct.pack('B', type))
+    data_ba.extend(struct.pack('B', flags))
+    data_ba.extend(struct.pack('B', len(number)))
+    data_ba.extend(number.encode('utf-8'))
+
+    iutctl.btp_socket.send_wait_rsp(*HFP['ag_last_dialed_number'], data=data_ba)
+
 # FUNC COMPLETION
 
 def hfp_command_rsp_succ(timeout=20.0):
@@ -602,8 +618,33 @@ def hfp_sco_disconnected_ev(hfp, data, data_len):
     hfp.event_received(defs.BTP_HFP_EV_SCO_DISCONNECTED, None)
 
 
+def hfp_new_call_ev(hfp, data, data_len):
+    logging.debug("%s %r %r", hfp_new_call_ev.__name__, data, data_len)
+
+    hdr_fmt = '<BBBB'
+    hdr_len = struct.calcsize(hdr_fmt)
+
+    if len(data) < hdr_len:
+        raise BTPError('Invalid data length')
+
+    index, type, dir, number_len = struct.unpack_from(hdr_fmt, data[:hdr_len])
+    number = struct.unpack_from(f"{number_len}s", data, hdr_len)[0]
+    hfp.new_call(number, type, index, dir)
+
+
+def hfp_call_status_ev(hfp, data, data_len):
+    logging.debug("%s %r %r", hfp_call_status_ev.__name__, data, data_len)
+
+    hdr_fmt = '<BB'
+
+    index, status = struct.unpack_from(hdr_fmt, data)
+    hfp.update_call(index, status)
+
+
 HFP_EV = {
     defs.BTP_HFP_EV_DUMMY_COMPLETED: hfp_ev_dummy_completed,
     defs.BTP_HFP_EV_SCO_CONNECTED: hfp_sco_connected_ev,
     defs.BTP_HFP_EV_SCO_DISCONNECTED: hfp_sco_disconnected_ev,
+    defs.BTP_HFP_EV_NEW_CALL: hfp_new_call_ev,
+    defs.BTP_HFP_EV_CALL_STATUS: hfp_call_status_ev,
 }
