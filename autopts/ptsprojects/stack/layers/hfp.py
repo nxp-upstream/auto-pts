@@ -13,9 +13,8 @@
 # more details.
 #
 
-from autopts.ptsprojects.stack.common import wait_for_queue_event
+from autopts.ptsprojects.stack.common import wait_for_event, wait_for_queue_event
 from autopts.pybtp import defs
-
 
 class HFP:
     def __init__(self):
@@ -26,6 +25,7 @@ class HFP:
             defs.BTP_HFP_EV_SCO_CONNECTED: [],
             defs.BTP_HFP_EV_SCO_DISCONNECTED: [],
         }
+        self.calls = {}
 
     def is_sco_connected(self):
         return self.sco_connected
@@ -45,3 +45,24 @@ class HFP:
             self.event_queues[defs.BTP_HFP_EV_SCO_CONNECTED],
             lambda x: self.is_sco_connected,
             timeout, remove)
+
+    def new_call(self, number, type, index, dir):
+        call_info = {
+            'number': number,
+            'type': type,
+            'dir': dir,
+            'status': None
+        }
+        self.calls[index] = call_info
+
+    def update_call(self, index, status):
+        if index in self.calls:
+            self.calls[index]['status'] = status
+
+    def get_call_status(self, index):
+        if index in self.calls:
+            return self.calls[index]['status']
+        return None
+
+    def wait_call_status(self, index, status, timeout=5):
+        return wait_for_event(timeout, lambda: self.get_call_status(index) is status)

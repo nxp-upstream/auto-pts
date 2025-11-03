@@ -156,6 +156,15 @@ def hdl_wid_7(params: WIDParams):
     """
     if params.test_case_name in ['HFP/AG/OCL/BV-01-C', 'HFP/AG/OCM/BV-01-C', 'HFP/AG/OCN/BV-01-C']:
         btp.hfp_control(defs.HFP_REMOTE_RING)
+
+    if params.test_case_name in ['HFP/AG/TWC/BV-05-C']:
+        stack = get_stack()
+
+        btp.hfp_control(defs.HFP_REMOTE_RING, value=1)
+        stack.hfp.wait_call_status(1, defs.BTP_HFP_CALL_STATUS_ALERTING)
+        btp.hfp_control(defs.HFP_AG_ANSWER_CALL, value=1)
+        return True
+
     btp.hfp_control(defs.HFP_AG_ANSWER_CALL)
     return True
 
@@ -207,6 +216,8 @@ def hdl_wid_12(params: WIDParams):
         sleep(3)
     log("hdl_wid_12: External call to IUT")
     btp.hfp_ag_enable_call()
+    if params.test_case_name in ['HFP/AG/TWC/BV-05-C']:
+        btp.hfp_ag_last_dialed_number("7654321", 0)
     return True
 
 
@@ -942,7 +953,7 @@ def hdl_wid_108(_: WIDParams):
     return True
 
 
-def hdl_wid_109(_: WIDParams):
+def hdl_wid_109(params: WIDParams):
     """
     Set the Implementation Under Test (IUT) in a state that will allow the PTS to initiate an outgoing call, then click Ok.
     """
