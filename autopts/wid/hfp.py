@@ -474,9 +474,16 @@ def hdl_wid_42(_: WIDParams):
 
 def hdl_wid_43(params: WIDParams):
     """
-    Verify the DTMF code, then click Ok. 0
+    Send the DTMF code %s, then click Ok
     """
-    btp.hfp_dtmf_code_send(ord(params.description[-1]))
+    pattern = re.compile(r"DTMF\scode\s([0-9*#]+)")
+    data = pattern.findall(params.description)
+    if not data:
+        logging.error("%s parsing error", hdl_wid_43.__name__)
+        return False
+
+    dtmf_code = data[0]
+    btp.hfp_dtmf_code_send(ord(dtmf_code[0]))
     return True
 
 
