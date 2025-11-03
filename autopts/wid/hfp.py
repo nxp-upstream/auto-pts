@@ -233,6 +233,7 @@ def hdl_wid_13(params: WIDParams):
                                  'HFP/AG/TWC/BV-04-C']:
         btp.hfp_control(defs.HFP_TWC_CALL)
         return True
+
     btp.hfp_ag_enable_call()
     return True
 
@@ -777,7 +778,7 @@ def hdl_wid_78(params: WIDParams):
     1. TSPX_phone_number - the 1st call
     2. TSPX_second_phone_number - the 2nd call
     """
-    if params.test_case_name in ['HFP/AG/TWC/BV-04-C']:
+    if params.test_case_name in ['HFP/AG/TWC/BV-04-C', 'HFP/AG/TWC/BV-06-C']:
         return True
 
     btp.hfp_control(defs.HFP_TWC_CALL)
@@ -1604,4 +1605,31 @@ def hdl_wid_20000(_: WIDParams):
     btp.gap_set_conn()
     btp.gap_set_gendiscov()
 
-    retur
+    return True
+
+
+def hdl_wid_107(_: WIDParams):
+    """
+    Set the Implementation Under Test (IUT) in a state that will allow the PTS to initiate a AT+CHLD=4 operation,  then click OK.
+    Note: Upon receiving the said operation, the IUT will simultaneously join the active and held call into a conference with eachother and disconnect from the said conference.
+    """
+    stack = get_stack()
+
+    stack.hfp.wait_call_status(0, defs.BTP_HFP_CALL_STATUS_HELD)
+    btp.hfp_control(defs.HFP_AG_RETRIEVE, value=0)
+    stack.hfp.wait_call_status(0, defs.BTP_HFP_CALL_STATUS_ACTIVE)
+    return True
+
+
+def hdl_wid_40(_: WIDParams):
+    """
+    Verify the absence of the following audio paths:
+    1. Audio path between the Implemenatation Under Test (IUT), the PTS and the two external terminals.
+    Verify the presence of the following audio paths:
+    1. Bi-directional audio paths between the two external terminals.
+    Once verified, click Ok .
+    """
+    if not get_stack().hfp.is_sco_connected():
+        return True
+
+    return False
