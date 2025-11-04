@@ -1715,3 +1715,13 @@ def hdl_wid_201(_: WIDParams):
     """
     btp.hfp_ag_vre_text(0, 1, id=11)
     return True
+
+
+def hdl_wid_202(_: WIDParams):
+    """
+    Perform the action such that IUT it sends the result code +BVRA with 'vrect' value 1,
+    a valid 'vrectstate', a valid'textID', the 'textType' ID value 1, a valid 'textOperation' ID,
+    and thewell formatted string with a textual representation of the input sentence.
+    """
+    btp.hfp_ag_vre_text(1, 1, id=11)
+    return True
