@@ -1475,11 +1475,14 @@ def hdl_wid_204(_: WIDParams):
     return True
 
 
-def hdl_wid_219(_: WIDParams):
+def hdl_wid_219(params: WIDParams):
     """
     Place the Implementation Under Test (IUT) in a state
     which will allow a voice recognition deactivation from PTS, then click Ok.
     """
+    if params.test_case_name in ['HFP/AG/VRA/BV-04-C']:
+        return True
+
     btp.hfp_control(defs.HFP_DISABLE_VR)
     return True
 
