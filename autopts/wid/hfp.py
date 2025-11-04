@@ -969,9 +969,17 @@ def hdl_wid_110(params: WIDParams):
     """
     Set the Implementation Under Test (IUT) in a state that can receive the following AT Command, then click Ok: AT+CLCC
     """
-    if params.test_case_name in ['HFP/AG/VRT/BV-02-C', "HFP/AG/EVR/BV-01-C", 'HFP/AG/VRT/BV-01-C']:
+    if params.test_case_name in ['HFP/AG/VRT/BV-02-C', "HFP/AG/EVR/BV-01-C"]:
         sleep(10)
         btp.hfp_enable_audio()
+        return True
+
+    if params.test_case_name in ['HFP/AG/VRT/BV-01-C']:
+        if not get_stack().hfp.is_sco_connected():
+            btp.hfp_enable_audio()
+            btp.hfp_ag_vre_text(0, 1, delay=3000)
+        return True
+
     return True
 
 
@@ -1480,7 +1488,7 @@ def hdl_wid_219(params: WIDParams):
     Place the Implementation Under Test (IUT) in a state
     which will allow a voice recognition deactivation from PTS, then click Ok.
     """
-    if params.test_case_name in ['HFP/AG/VRA/BV-04-C']:
+    if params.test_case_name in ['HFP/AG/VRA/BV-04-C', 'HFP/AG/VRT/BV-01-C']:
         return True
 
     btp.hfp_control(defs.HFP_DISABLE_VR)
@@ -1643,3 +1651,10 @@ def hdl_wid_40(_: WIDParams):
         return True
 
     return False
+
+
+def hdl_wid_196(_: WIDParams):
+    """
+    Perform the action such that the AG's Voice Recognition audio input is activated and that the AG processes theaudio input.
+    """
+    return True

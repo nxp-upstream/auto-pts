@@ -472,7 +472,7 @@ def hfp_query_network_operator(flags=0):
 
     iutctl.btp_socket.send_wait_rsp(*HFP['query_network_operator'], data=data_ba)
 
-def hfp_ag_vre_text(type, operation, flags=0):
+def hfp_ag_vre_text(type, operation, delay=0, flags=0):
     logging.debug("%s", hfp_ag_vre_text.__name__)
     iutctl = get_iut()
 
@@ -480,6 +480,7 @@ def hfp_ag_vre_text(type, operation, flags=0):
 
     data_ba.extend(struct.pack('B', type))
     data_ba.extend(struct.pack('B', operation))
+    data_ba.extend(struct.pack('I', delay))
     data_ba.extend(struct.pack('B', flags))
 
     iutctl.btp_socket.send_wait_rsp(*HFP['ag_vre_text'], data=data_ba)
