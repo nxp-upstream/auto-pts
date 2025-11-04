@@ -311,10 +311,14 @@ def hdl_wid_25(_: WIDParams):
     return True
 
 
-def hdl_wid_27(_: WIDParams):
+def hdl_wid_27(params: WIDParams):
     """
     Click Ok, then end the 2nd call using the Implementation Under Test (IUT).
     """
+    if params.test_case_name in ['HFP/HF/TWC/BV-01-C']:
+        btp.hfp_control(defs.HFP_REJECT_HELD_CALL, value=1)
+        return True
+
     btp.hfp_control(defs.HFP_END_SECOND_CALL)
     return True
 
