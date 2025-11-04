@@ -89,7 +89,7 @@ def hdl_wid_1(params: WIDParams):
 
     btp.gap_pair(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
 
-    if params.test_case_name in ['HFP/AG/OCL/BV-01-C']:
+    if params.test_case_name in ['HFP/AG/OCL/BV-01-C', "HFP/AG/TCA/BV-04-C"]:
         btp.hfp_ag_register()
         sleep(3)
 
@@ -116,9 +116,7 @@ def hdl_wid_3(params: WIDParams):
     Click Ok, then initiate an audio connection (SCO) from the Implementation Under Test (IUT) to the PTS.
     """
     sleep(3)
-    if params.test_case_name in ['HFP/HF/ATA/BV-02-C'] or params.test_case_name in [
-        'HFP/HF/ATH/BV-03-C'] or params.test_case_name in ['HFP/HF/ATH/BV-04-C'] or params.test_case_name in [
-        'HFP/HF/ATH/BV-09-C']:
+    if params.test_case_name in ['HFP/HF/ATA/BV-02-C', 'HFP/HF/ATH/BV-03-C', 'HFP/HF/ATH/BV-04-C', 'HFP/HF/ATH/BV-09-C']:
         return True
     btp.hfp_control(defs.HFP_SEND_BCC)
     return True
@@ -695,6 +693,7 @@ def hdl_wid_63(_: WIDParams):
     Using the Implementation Under Test (IUT), query the network operator, then click Ok.
     """
     btp.hfp_query_network_operator()
+    return True
 
 
 def hdl_wid_64(_: WIDParams):
@@ -969,7 +968,7 @@ def hdl_wid_110(params: WIDParams):
     """
     Set the Implementation Under Test (IUT) in a state that can receive the following AT Command, then click Ok: AT+CLCC
     """
-    if params.test_case_name in ['HFP/AG/VRT/BV-02-C', "HFP/AG/EVR/BV-01-C"]:
+    if params.test_case_name in ['HFP/AG/VRT/BV-02-C', "HFP/AG/EVR/BV-01-C", "HFP/AG/EVR/BV-02-C", "HFP/AG/EVR/BV-03-C"]:
         sleep(10)
         btp.hfp_enable_audio()
         return True
@@ -1079,9 +1078,16 @@ def hdl_wid_126(_: WIDParams):
 
 def hdl_wid_130(_: WIDParams):
     """
-     then place the current call on hold and make the incoming/held call active using the Implementation Under Test (IUT).
+    Click Ok, then place the current call on hold and make the incoming/held call active using the Implementation Under Test (IUT).
     """
-    btp.hfp_control(defs.HFP_TWC_CALL)
+    btp.hfp_control(defs.HFP_ACCEPT_INCOMING_HELD_CALL, 1)
+    return True
+
+
+def hdl_wid_133(_: WIDParams):
+    """
+    Click OK, then integrate the held call to the conversation using the Implementation Under Test (IUT). Both external calls will be joined in the conversation.
+    """
     return True
 
 
@@ -1424,13 +1430,23 @@ def hdl_wid_193(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition audio input is activated.
     """
-    return False
+    btp.hfp_control(defs.HFP_AG_VRE_STATE, 1)  # the AG is ready to accept audio input
+    return True
 
 
 def hdl_wid_194(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition wants to send an audio ouput.
     """
+    btp.hfp_control(defs.HFP_AG_VRE_STATE, 2) # the AG is sending audio to the HF
+    return True
+
+
+def hdl_wid_195(_: WIDParams):
+    """
+    Perform the action in the IUT(AG) such that itsVoice Recognition processes VR audio input from HF.
+    """
+    btp.hfp_control(defs.HFP_AG_VRE_STATE, 3) # the AG is sending audio to the HF
     return True
 
 

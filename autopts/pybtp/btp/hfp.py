@@ -246,10 +246,14 @@ def hfp_verify_network_operator(name=""):
     logging.debug("%s", hfp_verify_network_operator.__name__)
     iutctl = get_iut()
 
-    data_ba = bytearray()
+    data_len = len(name)
+    remain_len = 16 - data_len
 
+    data_ba = bytearray()
+    data_ba.extend(struct.pack('B', data_len))
     data_ba.extend(name.encode())
-    data_ba.extend(struct.pack('B', flags))
+    if remain_len > 0:
+        data_ba.extend(b'\x00' * remain_len)
 
     iutctl.btp_socket.send_wait_rsp(*HFP['verify_network_operator'], data=data_ba)
 
