@@ -1693,3 +1693,15 @@ def hdl_wid_198(_: WIDParams):
     sleep(1)
     btp.hfp_ag_vre_text(1, 1, id=12, status=2)
     return True
+
+
+def hdl_wid_199(_: WIDParams):
+    """
+    Perform the Test Procedure:
+    1. Perform the action such that AG sends +BVRA with a valid'textType' and any 'textID' value.
+    2. Perform the action such that AG sends another +BVRA with avalid 'textType' and 'textID' from before, and the 'textOperation' IDvalue 2.
+    """
+    btp.hfp_ag_vre_text(0, 1, id=11)
+    sleep(1)
+    btp.hfp_ag_vre_text(0, 2, id=11)
+    return True
