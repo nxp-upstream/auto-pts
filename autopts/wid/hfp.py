@@ -1434,10 +1434,17 @@ def hdl_wid_194(_: WIDParams):
     return True
 
 
-def hdl_wid_197(_: WIDParams):
+def hdl_wid_197(params: WIDParams):
     """Perform the Test Procedure:
     1. Perform the action such that AG sends +BVRA with a valid 'textType' and any 'textID' value.
-    2. Perform the action such that AG sends another +BVRA with a valid 'textType' other than before."""
+    2. Perform the action such that AG sends another +BVRA with a valid 'textType' other than before.
+    """
+    if params.test_case_name in ['HFP/AG/VRT/BV-02-C']:
+        btp.hfp_ag_vre_text(0, 1, id=11)
+        sleep(1)
+        btp.hfp_ag_vre_text(1, 1, id=12, status=2)
+        return True
+
     btp.hfp_ag_vre_text(1, 1)
     sleep(5)
     btp.hfp_ag_vre_text(2, 1)
@@ -1510,7 +1517,7 @@ def hdl_wid_222(params: WIDParams):
     """
     Using the Implementation Under Test (IUT), activate voice recognition. Then click OK.
     """
-    if params.test_case_name in ['HFP/AG/VRT/BV-01-C']:
+    if params.test_case_name in ['HFP/AG/VRT/BV-01-C', 'HFP/AG/VRT/BV-02-C']:
         return True
 
     sleep(5)
