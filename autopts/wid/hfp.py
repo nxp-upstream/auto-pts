@@ -1681,3 +1681,15 @@ def hdl_wid_196(_: WIDParams):
     Perform the action such that the AG's Voice Recognition audio input is activated and that the AG processes theaudio input.
     """
     return True
+
+
+def hdl_wid_198(_: WIDParams):
+    """
+    Perform the Test Procedure:
+    1. Perform the action such that AG sends +BVRA with a valid'textType' and any 'textID' value.
+    2. Perform the action such that AG sends another +BVRA with avalid 'textType' other than before, the 'textID' other than before,and the 'textOperation' ID value 1.
+    """
+    btp.hfp_ag_vre_text(0, 1, id=11)
+    sleep(1)
+    btp.hfp_ag_vre_text(1, 1, id=12, status=2)
+    return True
