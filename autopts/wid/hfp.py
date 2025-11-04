@@ -969,7 +969,7 @@ def hdl_wid_110(params: WIDParams):
     """
     Set the Implementation Under Test (IUT) in a state that can receive the following AT Command, then click Ok: AT+CLCC
     """
-    if params.test_case_name in ['HFP/AG/VRT/BV-02-C', "HFP/AG/EVR/BV-01-C"]:
+    if params.test_case_name in ['HFP/AG/VRT/BV-02-C', "HFP/AG/EVR/BV-01-C", 'HFP/AG/VRT/BV-01-C']:
         sleep(10)
         btp.hfp_enable_audio()
     return True
@@ -1498,10 +1498,13 @@ def hdl_wid_220(_: WIDParams):
     return False
 
 
-def hdl_wid_222(_: WIDParams):
+def hdl_wid_222(params: WIDParams):
     """
     Using the Implementation Under Test (IUT), activate voice recognition. Then click OK.
     """
+    if params.test_case_name in ['HFP/AG/VRT/BV-01-C']:
+        return True
+
     sleep(5)
     btp.hfp_control(defs.HFP_ENABLE_VR)
     return True
