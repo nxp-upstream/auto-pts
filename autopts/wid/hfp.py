@@ -46,8 +46,10 @@ def hdl_wid_0(params: WIDParams):
         return True
     if params.test_case_name in ["HFP/HF/SLC/BV-01-C"]:
         return True
-    if params.test_case_name in ["HFP/HF/SLC/BI-01-C", "HFP/HF/SLC/BV-11-C"]:
+    if params.test_case_name in ["HFP/HF/SLC/BI-01-C"]:
         btp.hfp_hf_register()
+        return True
+    if params.test_case_name in ["HFP/HF/SLC/BV-11-C"]:
         return True
 
     if params.test_case_name.find('HFP/AG/') >= 0:
@@ -96,6 +98,8 @@ def hdl_wid_1(params: WIDParams):
     if params.test_case_name.find('HFP/AG/') >= 0:
         if not stack.hfp.is_sco_connected():
             btp.hfp_enable_slc(None, 1, 1)
+    elif params.test_case_name in ['HFP/HF/SLC/BV-11-C']:
+        return True
     else:
         btp.hfp_enable_slc(None, 1, 0)
 
@@ -122,6 +126,9 @@ def hdl_wid_3(params: WIDParams):
     """
     sleep(3)
     if params.test_case_name in ['HFP/HF/ATA/BV-02-C', 'HFP/HF/ATH/BV-03-C', 'HFP/HF/ATH/BV-04-C', 'HFP/HF/ATH/BV-09-C']:
+        return True
+    elif params.test_case_name in ['HFP/HF/ACC/BV-03-C', 'HFP/AG/VTA/BV-02-C']:
+        btp.hfp_enable_audio()
         return True
     btp.hfp_control(defs.HFP_SEND_BCC)
     return True
@@ -844,10 +851,12 @@ def hdl_wid_85(_: WIDParams):
     return True
 
 
-def hdl_wid_86(_: WIDParams):
+def hdl_wid_86(params: WIDParams):
     """
     Place the Implementation Under Test (IUT) in a state which will allow a request from the PTS to activate voice recognition, then click Ok.
     """
+    if params.test_case_name in ['HFP/HF/VRR/BV-01-C']:
+        btp.hfp_control(defs.HFP_HF_READY_ACCEPT_AUDIO)
     return True
 
 
@@ -990,6 +999,13 @@ def hdl_wid_110(params: WIDParams):
             btp.hfp_ag_vre_text(0, 1, delay=3000)
         return True
 
+    if params.test_case_name in ['HFP/AG/VTA/BV-02-C']:
+        # Set the Implementation Under Test (IUT) in a state that can receive the following AT Command, then click Ok: AT+BVRA=2
+        stack = get_stack()
+        if stack.hfp.vr_need_terminate:
+            btp.hfp_disable_audio()
+        return True
+
     return True
 
 
@@ -1035,7 +1051,7 @@ def hdl_wid_120(_: WIDParams):
     return True
 
 
-def hdl_wid_121(_: WIDParams):
+def hdl_wid_121(params: WIDParams):
     """
     make a connection request to the PTS from the Implementation Under Test (IUT).
     """
@@ -1047,6 +1063,9 @@ def hdl_wid_121(_: WIDParams):
         btp.gap_wait_for_connection()
 
     btp.gap_pair(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+    if params.test_case_name in ['HFP/HF/SLC/BV-11-C']:
+        btp.hfp_enable_slc(None, 1, 0)
+        return True
     btp.hfp_enable_slc(None, 1)
     return True
 
@@ -1405,6 +1424,13 @@ def hdl_wid_177(_: WIDParams):
     """
     return True
 
+def hdl_wid_180(_: WIDParams):
+    """
+    description: After performing the following action, click OK.
+    Required Action: Trigger an internal event in HF that would cause an update to the AG of the supported indicator with Assigned Number: 1,2
+    """
+    btp.hfp_control(defs.HFP_HF_INDICATOR_VALUE, 1, 1) #HFP/HF/HFI/BV-01-C
+    return True
 
 def hdl_wid_187(_: WIDParams):
     """
@@ -1441,7 +1467,7 @@ def hdl_wid_193(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition audio input is activated.
     """
-    btp.hfp_control(defs.HFP_AG_VRE_STATE, 1)  # the AG is ready to accept audio input
+    btp.hfp_control(defs.HFP_AG_VRE_STATE, 2)  # the AG is ready to accept audio input
     return True
 
 
@@ -1449,7 +1475,9 @@ def hdl_wid_194(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition wants to send an audio ouput.
     """
-    btp.hfp_control(defs.HFP_AG_VRE_STATE, 2) # the AG is sending audio to the HF
+    btp.hfp_control(defs.HFP_AG_VRE_STATE, 1) # the AG is sending audio to the HF
+    stack = get_stack()
+    stack.hfp.vr_need_terminate = True
     return True
 
 
@@ -1508,12 +1536,28 @@ def hdl_wid_200(_: WIDParams):
     return True
 
 
-def hdl_wid_204(_: WIDParams):
+def hdl_wid_204(params: WIDParams):
     """Perform the action such that IUT it sends the resultcode +BVRA with 'vrect' value 1,
     a valid 'vrectstate', a valid'textID', the 'textType' ID value 3,
     a valid 'textOperation' ID,
     and the well formatted string with a textual representation of the input sentence."""
+    if params.test_case_name in ['HFP/AG/VRT/BV-09-C']:
+        # Perform the action such that IUT it sends the resultcode +BVRA with 'vrect' value 1,
+        #  a valid 'vrectstate', a valid'textID', the 'textType' ID value 3,
+        # a valid 'textOperation' ID,
+        # and the well formatted string with a textual representation of the input sentence.
+        btp.hfp_ag_vre_text(3, 1, id=1)
+        return True
     btp.hfp_control(defs.HFP_ENABLE_VR)
+    return True
+
+
+def hdl_wid_207(params: WIDParams):
+    """
+    Perform corresponding action on HF to interrupt the audio output from AG to begin a new voice command.
+    """
+    if params.test_case_name in ['HFP/HF/VTA/BV-01-C']:
+        btp.hfp_control(defs.HFP_HF_READY_ACCEPT_AUDIO)
     return True
 
 

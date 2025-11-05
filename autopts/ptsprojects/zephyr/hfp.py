@@ -550,7 +550,8 @@ def test_cases(ptses):
         ZTestCase("HFP", "HFP/HF/HFI/BV-01-C",
                   cmds=pre_conditions +
                        [TestFunc(btp.hfp_hf_register),
-                        TestFunc(btp.gap_set_conn)],
+                        TestFunc(btp.gap_set_conn),
+                        TestFunc(btp.gap_set_gendiscov)],
                   generic_wid_hdl=hfp_wid_hdl),
         ZTestCase("HFP", "HFP/HF/DIS/BV-02-C",
                   cmds=pre_conditions +
