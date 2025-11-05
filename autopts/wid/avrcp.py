@@ -17,6 +17,7 @@ import logging
 import time
 import struct
 import re
+import xml.etree.ElementTree as ET
 
 from autopts.ptsprojects.stack import get_stack
 from autopts.ptsprojects.testcase import MMI
@@ -24,7 +25,9 @@ from autopts.pybtp import btp, defs
 from autopts.pybtp.types import (
     WIDParams,
     BLUETOOTH_SIG_VENDOR_ID,
-    AVRCPSpecificOperation,
+    AVRCPStatus,
+    AVRCPRspCode,
+    AVRCPMediaAttributes,
     AVRCPMediaContentNavigationScope,
     AVCTPPassThroughOperation,
     AVRCPNotificationEvents,
@@ -43,10 +46,71 @@ def avrcp_wid_hdl(wid, description, test_case_name):
     return generic_wid_hdl(wid, description, test_case_name, [__name__])
 
 
+def get_valid_media_item(scope, attr_list=[], skip_uids=[]):
+    uid = []
+    while True:
+        btp.avrcp_get_folder_items(scope, 0, 10, attr_list)
+        data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
+        if data is None:
+            return None
+
+        result = btp.avrcp_decode_get_folder_items_rsp(data)
+        items = []
+        if result["status"] == AVRCPStatus.OPERATION_COMPLETED:
+            stack = get_stack()
+            stack.avrcp.uid_counter = result["uid_counter"]
+            stack.avrcp.virtual_filesystem_items = result["items"]
+            items = stack.avrcp.virtual_filesystem_items
+
+            # Find the media element item with attribute in the attr_list
+            for item in items:
+                if item["type"] == "media_element":
+                    if item["uid"] in skip_uids:
+                        continue
+                    if not attr_list:
+                        return item
+                    for attr in item["attrs"]:
+                        if attr["attr_id"] in attr_list:
+                            return item
+
+        # Find the next folder item
+        folder_item = next((item for item in items if item["type"] == "folder" and item["uid"] not in uid), None)
+        if folder_item is None:
+            btp.avrcp_change_path(stack.avrcp.uid_counter, AVRCPChangePathDirection.FOLDER_UP, None)
+        else:
+            btp.avrcp_change_path(stack.avrcp.uid_counter, AVRCPChangePathDirection.FOLDER_DOWN, folder_item["uid"])
+            uid.append(folder_item["uid"])
+
+        data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_RSP)
+        if data is None:
+            return None
+
+        status = struct.unpack_from('B', data, 0)[0]
+        if status != AVRCPStatus.OPERATION_COMPLETED:
+            return None
+
 # wid handlers section begin
 def hdl_wid_1(params: WIDParams):
     # Example WID
 
+    return True
+
+def hdl_wid_5(_: WIDParams):
+    """
+    description: PTS has sent a Add To Now Playing command with an invalid UID.
+    The IUT must respond with the error code: Does Not Exist (0x09).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_6(_: WIDParams):
+    """
+    description: PTS has sent a Change Path Down command with an invalid folder UID.
+    The IUT must respond with the error code: Does Not Exist (0x09).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_REQ) is None:
+        return False
     return True
 
 def hdl_wid_7(_: WIDParams):
@@ -55,6 +119,24 @@ def hdl_wid_7(_: WIDParams):
     The IUT must respond with the error code: Invalid Parameter (0x01).
     """
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CURR_PLAYER_APP_SETTING_VAL_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_8(_: WIDParams):
+    """
+    description: PTS has sent a Get Folder Items command with invalid values for Start and End.
+    The IUT must respond with the error code: Range Out Of Bounds (0x0B).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_9(_: WIDParams):
+    """
+    description: PTS has sent a Get Item Attributes command with an invalid UID Counter.
+    The IUT must respond with the error code: UID Changed (0x05).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_REQ) is None:
         return False
     return True
 
@@ -91,6 +173,15 @@ def hdl_wid_13(_: WIDParams):
         return False
     return True
 
+def hdl_wid_14(_: WIDParams):
+    """
+    description: PTS has sent a Play Item command with an invalid UID.
+    The IUT must respond with the error code: Does Not Exist (0x09).
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_PLAY_ITEM_REQ) is None:
+        return False
+    return True
+
 def hdl_wid_16(_: WIDParams):
     """
     description: PTS has sent a Set Absolute Volume command with an invalid Parameter Length.
@@ -117,6 +208,14 @@ def hdl_wid_20(_: WIDParams):
     btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_ADDRESSED_PLAYER_CHANGED)
     return True
 
+def hdl_wid_22(_: WIDParams):
+    """
+    description: Please take action to trigger a UIDs Changed notification.
+    Action: This may be done by adding or removing media from the browsed players virtual file system.
+    """
+    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_UIDS_CHANGED)
+    return True
+
 def hdl_wid_23(_: WIDParams):
     """
     description: Place the IUT into a state where no track is currently selected, then press 'OK' to continue.
@@ -127,6 +226,7 @@ def hdl_wid_24(_: WIDParams):
     """
     description: Start playing a media item with at least 512 bytes worth of metadata, then press 'OK'.
     """
+    btp.avrcp_tg_prepare_long_metadata()
     return True
 
 def hdl_wid_25(_: WIDParams):
@@ -142,6 +242,12 @@ def hdl_wid_27(_: WIDParams):
     """
     return True
 
+def hdl_wid_31(_: WIDParams):
+    """
+    description: Do the following media players exist on the IUT?
+    """
+    return True
+
 def hdl_wid_32(_: WIDParams):
     """
     description: If at least one media player was found press 'Yes', otherwise press 'No'.
@@ -154,6 +260,12 @@ def hdl_wid_32(_: WIDParams):
 def hdl_wid_34(_: WIDParams):
     """
     description: Has the Now Playing List changed from its initial state?.
+    """
+    return True
+
+def hdl_wid_37(_: WIDParams):
+    """
+    description: Do the following items match the current search results?
     """
     return True
 
@@ -180,6 +292,152 @@ def hdl_wid_42(_: WIDParams):
     description: PTS has sent an invalid command over the browsing channel.  The IUT must respond with a general reject on the browsing channel.
     """
     return True
+
+def hdl_wid_45(_: WIDParams):
+    """
+    description: Take action to find a cover art img handle, then send a get-img or get-thm operation to retrieve the cover art.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    stack = get_stack()
+    stack.discovered_media_items = []
+
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Now_Playing, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            stack.discovered_media_items.append(media_item)
+            btp.avrcp_get_image(image_handle)
+            if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
+                return False
+            return True
+
+    return False
+
+def hdl_wid_46(_: WIDParams):
+    """
+    description: Take action to find a DIFFERENT cover art img handle, then send a get-img or get-thm operation to retrieve the cover art.
+    """
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Now_Playing,
+                                      [AVRCPMediaAttributes.DEFAULT_COVER_ART], get_stack().discovered_media_items)
+    if media_item is None:
+        return False
+
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            btp.avrcp_get_image(image_handle)
+            if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
+                return False
+            return True
+
+    return False
+
+def hdl_wid_47(_: WIDParams):
+    """
+    description: Use Get Element Attributes to get a cover art img handle for the currently playing item, then get the cover art image.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    btp.avrcp_get_element_attrs([AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_RSP)
+    if data is None:
+        return False
+
+    offset = 0
+    hdr = 'B'
+    status = struct.unpack_from(hdr, data, offset)[0]
+    offset += struct.calcsize(hdr)
+    if status != AVRCPRspCode.STABLE:
+        return False
+
+    hdr = 'B'
+    num_attrs = struct.unpack_from(hdr, data, offset)[0]
+    offset += struct.calcsize(hdr)
+
+    attrs = []
+    hdr = '<I H H'
+    for _ in range(num_attrs):
+        attr_id, charset_id, attr_len = struct.unpack_from(hdr, data, offset)
+        offset += struct.calcsize(hdr)
+
+        attr_val_bytes = data[offset:offset + attr_len]
+        try:
+            attr_val = attr_val_bytes.decode('utf-8')
+        except Exception:
+            attr_val = attr_val_bytes.hex()
+        offset += attr_len
+
+        attrs.append({
+            "attr_id": attr_id,
+            "charset_id": charset_id,
+            "attr_len": attr_len,
+            "attr_val": attr_val,
+        })
+
+    for attr in attrs:
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            btp.avrcp_get_image(image_handle)
+            if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
+                return False
+            return True
+
+    return False
+
+def hdl_wid_48(_: WIDParams):
+    """
+    description: Take action to play a media element with cover art.  Press 'Ok' when ready.
+    """
+    return True
+
+def hdl_wid_50(_: WIDParams):
+    """
+    description: Take action to play a media element that does not have any cover art with it.  Press 'Ok' when ready.
+    """
+    btp.avrcp_tg_play_item_without_cover_art()
+    return True
+
+def hdl_wid_49(_: WIDParams):
+    """
+    description: Take action to reject the invalid 'get-img' request sent by the tester.
+    """
+    return True
+
+def hdl_wid_52(_: WIDParams):
+    """
+    description: Is the newly added media item listed below?
+    """
+    return True
+
+def hdl_wid_53(_: WIDParams):
+    """
+    description: Use Get Item Attributes to get a cover art img handle for the currently playing item(uid=0x0), then get the cover art image.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Now_Playing, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            btp.avrcp_get_image(image_handle)
+            if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
+                return False
+            return True
+
+    return False
 
 def hdl_wid_82(_: WIDParams):
     """
@@ -2638,12 +2896,15 @@ def hdl_wid_1042(_: WIDParams):
     """
     return True
 
-def hdl_wid_2001(_: WIDParams):
+def hdl_wid_2001(params: WIDParams):
     """
     description: Please wait while PTS creates an AVCTP browsing channel connection.
     """
     btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_BROWSING_CONNECTED)
-
+    if params.test_case_name in ['AVRCP/CT/CA/BV-15-C']:
+        btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+        if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+            return False
     return True
 
 def hdl_wid_2002(params: WIDParams):
@@ -2714,6 +2975,30 @@ def hdl_wid_2008(_: WIDParams):
     btp.avrcp_control_disconnect()
     return btp.avrcp_wait_for_disconnection(defs.BTP_AVRCP_EV_CONTROL_CONNECTED)
 
+def hdl_wid_3001(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Add To Now Playing] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3002(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Change Path] <Down> command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3003(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Change Path] <Up> command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_REQ) is None:
+        return False
+    return True
+
 def hdl_wid_3004(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Capabilities] command sent by the PTS.
@@ -2735,6 +3020,46 @@ def hdl_wid_3006(_: WIDParams):
     description: Take action to send a valid response to the [Get Element Attributes] command sent by the PTS.
     """
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3007(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Folder Items] with the scope <Media Player List> command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3008(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Folder Items] with the scope <Now Playing> command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3009(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Folder Items] with the scope <Search Results> command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3010(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Folder Items] with the scope <Virtual File System> command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3011(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Item Attributes] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_REQ) is None:
         return False
     return True
 
@@ -2775,6 +3100,22 @@ def hdl_wid_3018(_: WIDParams):
     description: Take action to send a valid response to the [List Player Application Setting Values] command sent by the PTS.
     """
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_VALS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3019(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Play Item] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_PLAY_ITEM_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3020(_: WIDParams):
+    """
+    Take action to send a valid response to the [Search] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SEARCH_REQ) is None:
         return False
     return True
 
@@ -2823,7 +3164,7 @@ def hdl_wid_3026(_: WIDParams):
     description: Take action to send an [Add To Now Playing] command to the PTS from the IUT.
     It may be necessary to browse the File System, Now Playing Folder, or Search Results to find a valid UID.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -2853,7 +3194,7 @@ def hdl_wid_3028(_: WIDParams):
     description: Take action to send an [Add To Now Playing] command with the scope <Search> to the PTS from the IUT.
     It may be necessary to perform a Search, and then browse the Search Results to find a valid UID.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -2868,11 +3209,11 @@ def hdl_wid_3028(_: WIDParams):
         return False
 
     # Find the first media element item
-    media_element_item = next((item for item in items if item["type"] == "media_element"), None)
-    if media_element_item is None:
+    media_item = next((item for item in items if item["type"] == "media_element"), None)
+    if media_item is None:
         return False
 
-    btp.avrcp_add_to_now_playing(AVRCPMediaContentNavigationScope.Search, media_element_item["uid"], stack.avrcp.uid_counter)
+    btp.avrcp_add_to_now_playing(AVRCPMediaContentNavigationScope.Search, media_item["uid"], stack.avrcp.uid_counter)
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_RSP)
     if data is None:
         return False
@@ -2883,7 +3224,7 @@ def hdl_wid_3029(_: WIDParams):
     description: Take action to send an [Add To Now Playing] command with the scope <Virtual File System> to the PTS from the IUT.
     It may be necessary to browse the File System to find a valid UID.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -2932,16 +3273,8 @@ def hdl_wid_3031(_: WIDParams):
     description: Take action to send a [Change Path] command with the direction <Up> to the PTS from the IUT.
     """
     stack = get_stack()
-    items = stack.avrcp.virtual_filesystem_items
-    if not items:
-        return False
 
-    # Find the first folder item
-    folder_item = next((item for item in items if item["type"] == "folder"), None)
-    if folder_item is None:
-        return False
-
-    btp.avrcp_change_path(stack.avrcp.uid_counter, AVRCPChangePathDirection.FOLDER_UP, folder_item["uid"])
+    btp.avrcp_change_path(stack.avrcp.uid_counter, AVRCPChangePathDirection.FOLDER_UP, None)
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_RSP) is None:
         return False
     return True
@@ -2977,7 +3310,7 @@ def hdl_wid_3037(_: WIDParams):
     """
     description: Take action to send a [Get Folder Items] command with the scope of <Media Player List> to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_List, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_List, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -2993,7 +3326,7 @@ def hdl_wid_3038(_: WIDParams):
     """
     description: Take action to send a [Get Folder Items] command with the scope of <Now Playing> to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Now_Playing, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Now_Playing, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3008,7 +3341,7 @@ def hdl_wid_3039(_: WIDParams):
     """
     description: Take action to send a [Get Folder Items] command with the scope of <Search> to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3023,7 +3356,7 @@ def hdl_wid_3040(_: WIDParams):
     """
     description: Take action to send a [Get Folder Items] command with the scope of <Virtual File System> to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3058,7 +3391,7 @@ def hdl_wid_3042(_: WIDParams):
     """
     description: Take action to send a [Get Item Attributes] within the <Now Playing> scope and a valid media item UID (Other than playing UID) to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Now_Playing, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Now_Playing, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3073,11 +3406,11 @@ def hdl_wid_3042(_: WIDParams):
         return False
 
     # Find the first media element item
-    media_element_item = next((item for item in items if item["type"] == "media_element"), None)
-    if media_element_item is None:
+    media_item = next((item for item in items if item["type"] == "media_element"), None)
+    if media_item is None:
         return False
 
-    btp.avrcp_get_item_attrs(AVRCPMediaContentNavigationScope.Now_Playing, media_element_item["uid"], stack.avrcp.uid_counter, [])
+    btp.avrcp_get_item_attrs(AVRCPMediaContentNavigationScope.Now_Playing, media_item["uid"], stack.avrcp.uid_counter, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_RSP)
     if data is None:
         return False
@@ -3087,7 +3420,7 @@ def hdl_wid_3043(_: WIDParams):
     """
     description: Take action to send a [Get Item Attributes] within the <Search> scope and a valid media item UID (Other than playing UID) to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3102,11 +3435,11 @@ def hdl_wid_3043(_: WIDParams):
         return False
 
     # Find the first media element item
-    media_element_item = next((item for item in items if item["type"] == "media_element"), None)
-    if media_element_item is None:
+    media_item = next((item for item in items if item["type"] == "media_element"), None)
+    if media_item is None:
         return False
 
-    btp.avrcp_get_item_attrs(AVRCPMediaContentNavigationScope.Search, media_element_item["uid"], stack.avrcp.uid_counter, [])
+    btp.avrcp_get_item_attrs(AVRCPMediaContentNavigationScope.Search, media_item["uid"], stack.avrcp.uid_counter, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_RSP)
     if data is None:
         return False
@@ -3117,7 +3450,7 @@ def hdl_wid_3044(_: WIDParams):
     description: Take action to send a [Get Item Attributes] within the <Virtual File System> scope
     and a valid media item UID (Other than playing) to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3213,7 +3546,7 @@ def hdl_wid_3051(_: WIDParams):
     description: Take action to send a [Play Item] command to the PTS from the IUT.
     It may be necessary to browse for media in the Now Playing Folder, Search Results or File System to find a valid UID.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3242,7 +3575,7 @@ def hdl_wid_3052(_: WIDParams):
     description: Take action to send a [Play Item] command with the scope <Now Playing> to the PTS from the IUT.
     It may be necessary to browse for media in the Now Playing Folder to find a valid UID.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Now_Playing, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Now_Playing, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3257,11 +3590,11 @@ def hdl_wid_3052(_: WIDParams):
         return False
 
     # Find the first media element item
-    media_element_item = next((item for item in items if item["type"] == "media_element"), None)
-    if media_element_item is None:
+    media_item = next((item for item in items if item["type"] == "media_element"), None)
+    if media_item is None:
         return False
 
-    btp.avrcp_play_item(AVRCPMediaContentNavigationScope.Now_Playing, media_element_item["uid"], stack.avrcp.uid_counter)
+    btp.avrcp_play_item(AVRCPMediaContentNavigationScope.Now_Playing, media_item["uid"], stack.avrcp.uid_counter)
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_PLAY_ITEM_RSP) is None:
         return False
     return True
@@ -3271,7 +3604,7 @@ def hdl_wid_3053(_: WIDParams):
     description: Take action to send a [Play Item] command with the scope <Search> to the PTS from the IUT.
     It may be necessary to browse for media in the Search Results to find a valid UID.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Search, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3286,11 +3619,11 @@ def hdl_wid_3053(_: WIDParams):
         return False
 
     # Find the first media element item
-    media_element_item = next((item for item in items if item["type"] == "media_element"), None)
-    if media_element_item is None:
+    media_item = next((item for item in items if item["type"] == "media_element"), None)
+    if media_item is None:
         return False
 
-    btp.avrcp_play_item(AVRCPMediaContentNavigationScope.Search, media_element_item["uid"], stack.avrcp.uid_counter)
+    btp.avrcp_play_item(AVRCPMediaContentNavigationScope.Search, media_item["uid"], stack.avrcp.uid_counter)
     if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_PLAY_ITEM_RSP) is None:
         return False
     return True
@@ -3319,9 +3652,17 @@ def hdl_wid_3055(_: WIDParams):
 def hdl_wid_3056(_: WIDParams):
     """
     description: Take action to trigger a [Register Notification, Changed] response for <Addressed Player Changed> to the PTS from the IUT.
-    This can be accomplished by changing the currently addressed 
+    This can be accomplished by changing the currently addressed player.
     """
     btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_AVAILABLE_PLAYERS_CHANGED)
+    return True
+
+def hdl_wid_3059(_: WIDParams):
+    """
+    description: Take action to trigger a [Register Notification, Changed] response for <Now Playing Content Changed> to the PTS from the IUT.
+    This can be accomplished by adding tracks to the Now Playing List on the IUT.
+    """
+    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_NOW_PLAYING_CONTENT_CHANGED)
     return True
 
 def hdl_wid_3062(_: WIDParams):
@@ -3330,7 +3671,7 @@ def hdl_wid_3062(_: WIDParams):
     This can be accomplished by changing a Player Application Setting (Equalizer, Repeat Mode, Shuffle, Scan) on the IUT.
     """
     # NumAttributes=0x01, AttributeID1=0x01, ValueID1=0x02
-    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_PLAYER_APPLICATION_SETTING_CHANGED, b'\x01\x01\x02')
+    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_PLAYER_APPLICATION_SETTING_CHANGED)
     return True
 
 def hdl_wid_3064(_: WIDParams):
@@ -3338,7 +3679,15 @@ def hdl_wid_3064(_: WIDParams):
     description: Take action to trigger a [Register Notification, Changed] response for <Track Changed> to the PTS from the IUT.
     This can be accomplished by changing the currently playing track on the IUT.
     """
-    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_TRACK_CHANGED, 1)
+    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_TRACK_CHANGED)
+    return True
+
+def hdl_wid_3067(_: WIDParams):
+    """
+    description: Take action to trigger a [Register Notification, Changed] response for <UIDs Changed> with an updated UID Counter to the PTS from the IUT.
+    This can be accomplished by adding or removing tracks from the IUT.
+    """
+    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_UIDS_CHANGED)
     return True
 
 def hdl_wid_3068(_: WIDParams):
@@ -3346,7 +3695,7 @@ def hdl_wid_3068(_: WIDParams):
     description: Take action to trigger a [Register Notification, Changed] response for <Volume Changed> to the PTS from the IUT.
     This can be accomplished by changing the volume on the IUT.
     """
-    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_VOLUME_CHANGED, 0x3F)
+    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_VOLUME_CHANGED)
     return True
 
 def hdl_wid_3069(_: WIDParams):
@@ -3412,7 +3761,7 @@ def hdl_wid_3085(_: WIDParams):
     """
     description: Take action to send a [Set Addressed Player] command to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_List, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_List, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3440,7 +3789,7 @@ def hdl_wid_3086(_: WIDParams):
     """
     description: Take action to send a [Set Browsed Player] command to the PTS from the IUT.
     """
-    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_List, 0, 10, 0, [])
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_List, 0, 10, [])
     data = btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP)
     if data is None:
         return False
@@ -3491,6 +3840,14 @@ def hdl_wid_3089(_: WIDParams):
         return False
     return True
 
+def hdl_wid_3090(params: WIDParams):
+    """
+    description: Take action to populate the now playing list with multiple items.  Then make sure a track is playing and press 'OK'.
+    """
+    if params.test_case_name in ['AVRCP/TG/MCN/NP/BV-10-C']:
+        btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_NOW_PLAYING_CONTENT_CHANGED)
+    return True
+
 def hdl_wid_3094(_: WIDParams):
     """
     description: Take action to send a [Get Total Number of Items] command with the scope of <Media Player List> to the PTS from the IUT.
@@ -3527,6 +3884,66 @@ def hdl_wid_3097(_: WIDParams):
         return False
     return True
 
+def hdl_wid_3098(_: WIDParams):
+    """
+    description: Take action to send a valid response to the [Get Total Number of Items] command sent by the PTS.
+    """
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_TOTAL_NUMBER_OF_ITEMS_REQ) is None:
+        return False
+    return True
+
+def hdl_wid_3100(_: WIDParams):
+    """
+    description: Take action to use the [Get Folder Items] command to find media with a Cover Art Img Handle.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    btp.avrcp_get_folder_items(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, 0, 10, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if not btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_RSP):
+        return False
+    return True
+
+def hdl_wid_3101(_: WIDParams):
+    """
+    description: Take action to use the [Get Item Attributes] command with the <Cover Art> attribute.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    stack = get_stack()
+    btp.avrcp_get_item_attrs(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, media_item["uid"],
+                                stack.avrcp.uid_counter,[AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_3102(_: WIDParams):
+    """
+    description: Take action to change the currently playing track.
+    """
+    btp.avrcp_tg_register_notification(AVRCPNotificationEvents.EVENT_TRACK_CHANGED)
+    return True
+
+def hdl_wid_3104(_: WIDParams):
+    """
+    description: Take action to use the [Get Element Attributes] command with the <Cover Art> attribute.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    btp.avrcp_get_element_attrs([AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_RSP) is None:
+        return False
+    return True
+
 def hdl_wid_3110(params: WIDParams):
     """
     description: Take action to send a [Set Absolute Volume] command with [xx] to the PTS from the IUT.
@@ -3536,7 +3953,258 @@ def hdl_wid_3110(params: WIDParams):
         return False
     volume = int(match.group(1))
     btp.avrcp_set_absolute_volume(volume)
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_REQ) is None:
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_4004(_: WIDParams):
+    """
+    description:  Please accept the OBEX CONNECT REQ.
+    """
+    return True
+
+def hdl_wid_4017(_: WIDParams):
+    """
+    description:  Please accept the l2cap channel connection for an OBEX connection.
+    """
+    return True
+
+def hdl_wid_4024(_: WIDParams):
+    """
+    description:  Take action to initiate an OBEX CONNECT REQ.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+    return True
+
+def hdl_wid_4031(_: WIDParams):
+    """
+    description:  Take action to initiate an OBEX DISCONNECT REQ.
+    """
+    btp.avrcp_ca_ct_disconnect()
+    if not btp.avrcp_wait_for_disconnection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+    return True
+
+def hdl_wid_4051(_: WIDParams):
+    """
+    description:  Was the currently displayed file or folder received by the IUT?
+    """
+    return True
+
+def hdl_wid_4069(_: WIDParams):
+    """
+    description:  Take action to initiate a GetImg operation from the IUT.
+    """
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Media_Player_Virtual_Filesystem, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    image_handle = None
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            break
+
+    if image_handle is None:
+        return False
+
+    btp.avrcp_get_image(image_handle)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
+        return False
+    return True
+
+def parse_image_props_xml(xml_string: str) -> dict:
+    """
+    Output example:
+    {
+        'version': '1.0',
+        'handle': '0000002',
+        'native': {'encoding': 'JPEG', 'pixel': '500*500'},
+        'variants': [
+            {'encoding': 'GIF', 'pixel': '500*500'},
+            {'encoding': 'JPEG', 'pixel': '200*200'},
+            {'encoding': 'JPEG', 'pixel': '300*300'}
+        ]
+    }
+    """
+    root = ET.fromstring(xml_string)
+
+    return {
+        'version': root.get('version'),
+        'handle': root.get('handle'),
+        'native': dict(root.find('native').attrib) if root.find('native') is not None else {},
+        'variants': [dict(elem.attrib) for elem in root.findall('variant')]
+    }
+
+def build_image_desc_xml(variant: dict) -> str:
+    image_desc = f"""<image-descriptor version="1.0">
+    <image encoding="{variant.get('encoding', '')}" pixel="{variant.get('pixel', '')}"/>
+</image-descriptor>"""
+
+    return image_desc
+
+def hdl_wid_4070(_: WIDParams):
+    """
+    description:  Take action to initiate a GetImg operation using the Native image descriptor for an image.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Now_Playing, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    image_handle = None
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            break
+
+    if image_handle is None:
+        return False
+
+    btp.avrcp_get_image_props(image_handle)
+    body = btp.avrcp_decode_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
+    if body is None:
+        return False
+
+    dct = parse_image_props_xml(body)
+    if not dct.get('native'):
+        return False
+
+    image_desc = build_image_desc_xml(dct.get('native'))
+
+    btp.avrcp_get_image(image_handle, image_desc)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_4071(_: WIDParams):
+    """
+    description:  Take action to initiate a GetLinkedThumbnail operation.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Now_Playing, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    image_handle = None
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            break
+
+    if image_handle is None:
+        return False
+
+    btp.avrcp_get_linked_thumbnail(image_handle)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_LINKED_THUMBNAIL_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_4072(_: WIDParams):
+    """
+    description:  Take action to initiate a GetImg operation using the Thumbnail image descriptor for an image.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Now_Playing, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    image_handle = None
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            break
+
+    if image_handle is None:
+        return False
+
+    btp.avrcp_get_image_props(image_handle)
+    body = btp.avrcp_decode_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
+    if body is None:
+        return False
+
+    dct = parse_image_props_xml(body)
+    if not dct.get('variants'):
+        return False
+
+    # Find the smallest variant
+    variant_min = dct.get('variants')[0]
+    pixel = variant_min.get('pixel')
+    width, height = pixel.split('*')
+    area_min = int(width) * int(height)
+    for variant in dct.get('variants'):
+        pixel = variant.get('pixel')
+        width, height = pixel.split('*')
+        area = int(width) * int(height)
+        if area_min > area:
+            area_min = area
+            variant_min = variant
+
+    image_desc = build_image_desc_xml(variant_min)
+
+    btp.avrcp_get_image(image_handle, image_desc)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
+        return False
+    return True
+
+def hdl_wid_4073(_: WIDParams):
+    """
+    description:  Take action to initiate a GetImgProperties operation, then send a GetImg operation using a variant image descriptor(not the thumbnail variant) for an image.
+    """
+    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
+        return False
+
+    media_item = get_valid_media_item(AVRCPMediaContentNavigationScope.Now_Playing, [AVRCPMediaAttributes.DEFAULT_COVER_ART])
+    if media_item is None:
+        return False
+
+    image_handle = None
+    for attr in media_item.get("attrs"):
+        if attr.get("attr_id") == AVRCPMediaAttributes.DEFAULT_COVER_ART:
+            image_handle = attr.get("attr_val")
+            break
+
+    if image_handle is None:
+        return False
+
+    btp.avrcp_get_image_props(image_handle)
+    body = btp.avrcp_decode_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
+    if body is None:
+        return False
+
+    dct = parse_image_props_xml(body)
+    if not dct.get('variants'):
+        return False
+
+    # Find the largest variant
+    variant_max = dct.get('variants')[0]
+    pixel = variant_max.get('pixel')
+    width, height = pixel.split('*')
+    area_max = int(width) * int(height)
+    for variant in dct.get('variants'):
+        pixel = variant.get('pixel')
+        width, height = pixel.split('*')
+        area = int(width) * int(height)
+        if area_max < area:
+            area_max = area
+            variant_max = variant
+        
+    image_desc = build_image_desc_xml(variant_max)
+
+    btp.avrcp_get_image(image_handle, image_desc)
+    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_IMAGE_RSP) is None:
         return False
     return True
 

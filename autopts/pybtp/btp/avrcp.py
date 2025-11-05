@@ -24,12 +24,13 @@ from autopts.pybtp.btp.btp import CONTROLLER_INDEX, get_iut_method as get_iut, \
 from autopts.pybtp.types import (
     BTPError,
     addr2btp_ba,
+    AVRCPStatus,
     WIDParams,
-    AVRCPSpecificOperation,
     AVRCPMediaContentNavigationScope,
     AVCTPPassThroughOperation,
     AVRCPNotificationEvents,
-    AVRCPVendorUiqueOperationID
+    AVRCPVendorUiqueOperationID,
+    AVRCPChangePathDirection
 )
 log = logging.debug
 
@@ -131,6 +132,30 @@ AVRCP = {
     'tg_register_notification': (defs.BTP_SERVICE_ID_AVRCP,
                                  defs.BTP_AVRCP_CMD_TG_REGISTER_NOTIFICATION,
                                  CONTROLLER_INDEX),
+    'tg_prepare_long_metadata': (defs.BTP_SERVICE_ID_AVRCP,
+                                 defs.BTP_AVRCP_CMD_TG_PREPARE_LONG_METADATA,
+                                 CONTROLLER_INDEX),
+    'tg_change_path': (defs.BTP_SERVICE_ID_AVRCP,
+                       defs.BTP_AVRCP_CMD_TG_CHANGE_PATH,
+                       CONTROLLER_INDEX),
+    'ca_ct_connect': (defs.BTP_SERVICE_ID_AVRCP,
+                      defs.BTP_AVRCP_CMD_CA_CT_CONNECT,
+                      CONTROLLER_INDEX),
+    'ca_ct_disconnect': (defs.BTP_SERVICE_ID_AVRCP,
+                         defs.BTP_AVRCP_CMD_CA_CT_DISCONNECT,
+                         CONTROLLER_INDEX),
+    'get_image_props': (defs.BTP_SERVICE_ID_AVRCP,
+                       defs.BTP_AVRCP_CMD_GET_IMAGE_PROPS,
+                       CONTROLLER_INDEX),
+    'get_image': (defs.BTP_SERVICE_ID_AVRCP,
+                  defs.BTP_AVRCP_CMD_GET_IMAGE,
+                  CONTROLLER_INDEX),
+    'get_linked_thumbnail': (defs.BTP_SERVICE_ID_AVRCP,
+                             defs.BTP_AVRCP_CMD_GET_LINKED_THUMBNAIL,
+                             CONTROLLER_INDEX),
+    'tg_play_item_without_cover_art': (defs.BTP_SERVICE_ID_AVRCP,
+                                       defs.BTP_AVRCP_CMD_TG_PLAY_ITEM_WITHOUT_COVER_ART,
+                                       CONTROLLER_INDEX),
 }
 
 
@@ -166,7 +191,10 @@ def _avrcp_wait_pass_though(ev, opid, state, bd_addr, timeout):
         if rx_data is None:
             break
         else:
-            result, byte, data_len  = struct.unpack_from('<BBB', rx_data)
+            if ev == defs.BTP_AVRCP_EV_PASS_THROUGH_RSP:
+                result, byte, data_len = struct.unpack_from('<BBB', rx_data)
+            else:
+                byte, data_len = struct.unpack_from('<BB', rx_data)
             if byte == (opid | state << 7):
                 break
     return rx_data
@@ -179,33 +207,49 @@ def avrcp_wait_pass_though_rsp(opid, state, bd_addr=None, timeout=10):
 
 def avrcp_decode_get_folder_items_rsp(data: bytes):
     offset = 0
-    if len(data) < 5:
+    hdr = 'B'
+    if len(data) < struct.calcsize(hdr):
         raise ValueError("Data too short for response header")
 
-    # Parse response header
-    status, uid_counter, num_items = struct.unpack_from('>B H H', data, offset)
-    offset += 5
+    status = struct.unpack_from(hdr, data, offset)[0]
+    offset += struct.calcsize(hdr)
+
+    if status != AVRCPStatus.OPERATION_COMPLETED:
+        return {"status": status}
+
+    hdr = '<H H'
+    if len(data) < offset + struct.calcsize(hdr):
+        raise ValueError("Data too short for response header")
+
+    uid_counter, num_items = struct.unpack_from(hdr, data, offset)
+    offset += struct.calcsize(hdr)
 
     items = []
 
     for _ in range(num_items):
-        if offset + 3 > len(data):
+        hdr = '<B H'
+        if len(data) < offset + struct.calcsize(hdr):
             raise ValueError("Data too short for item header")
-        item_type, item_len = struct.unpack_from('>B H', data, offset)
-        offset += 3
+
+        item_type, item_len = struct.unpack_from(hdr, data, offset)
+        offset += struct.calcsize(hdr)
 
         item_data = data[offset:offset + item_len]
         if len(item_data) < item_len:
             raise ValueError("Incomplete item data")
 
         if item_type == 0x01:  # Media Player
-            if len(item_data) < 28:
+            hdr = '<H B I B 16s H H'
+            if len(item_data) < struct.calcsize(hdr):
                 raise ValueError("Media Player item too short")
+
             (
                 player_id, major_type, player_subtype, play_status,
                 feature_bitmask, charset_id, name_len
-            ) = struct.unpack_from('>H B I B 16s H H', item_data, 0)
-            name_bytes = item_data[28:28 + name_len]
+            ) = struct.unpack_from(hdr, item_data, 0)
+            _offset = struct.calcsize(hdr)
+
+            name_bytes = item_data[_offset:_offset + name_len]
             try:
                 name = name_bytes.decode('utf-8')
             except Exception:
@@ -223,11 +267,14 @@ def avrcp_decode_get_folder_items_rsp(data: bytes):
             })
 
         elif item_type == 0x02:  # Folder
-            if len(item_data) < 15:
+            hdr = '<8s B B H H'
+            if len(item_data) < struct.calcsize(hdr):
                 raise ValueError("Folder item too short")
-            uid = item_data[0:8]
-            folder_type, playable, charset_id, name_len = struct.unpack_from('>B B H H', item_data, 8)
-            name_bytes = item_data[14:14 + name_len]
+
+            uid, folder_type, playable, charset_id, name_len = struct.unpack_from(hdr, item_data, 0)
+            _offset = struct.calcsize(hdr)
+
+            name_bytes = item_data[_offset:_offset + name_len]
             try:
                 name = name_bytes.decode('utf-8')
             except Exception:
@@ -243,17 +290,44 @@ def avrcp_decode_get_folder_items_rsp(data: bytes):
             })
 
         elif item_type == 0x03:  # Media Element
-            if len(item_data) < 11:
+            hdr = '<8s B H H'
+            if len(item_data) < struct.calcsize(hdr):
                 raise ValueError("Media Element item too short")
-            uid = item_data[0:8]
-            media_type, charset_id = struct.unpack_from('>B H', item_data, 8)
-            # Only decode name (name_len + name[]) for now
-            name_len = struct.unpack_from('>H', item_data, 10)[0]
-            name_bytes = item_data[12:12 + name_len]
+
+            uid, media_type, charset_id, name_len = struct.unpack_from(hdr, item_data, 0)
+            _offset = struct.calcsize(hdr)
+
+            name_bytes = item_data[_offset:_offset + name_len]
             try:
                 name = name_bytes.decode('utf-8')
             except Exception:
                 name = name_bytes.hex()
+            _offset += name_len
+
+            hdr = 'B'
+            num_attrs = struct.unpack_from('B', item_data, _offset)[0]
+            _offset += struct.calcsize(hdr)
+
+            attrs = []
+            hdr = '<I H H'
+            for _ in range(num_attrs):
+                attr_id, attr_charset_id, attr_len = struct.unpack_from(hdr, item_data, _offset)
+                _offset += struct.calcsize(hdr)
+
+                attr_val_bytes = item_data[_offset:_offset + attr_len]
+                try:
+                    attr_val = attr_val_bytes.decode('utf-8')
+                except Exception:
+                    attr_val = attr_val_bytes.hex()
+                _offset += attr_len
+
+                attrs.append({
+                    "attr_id": attr_id,
+                    "charset_id": attr_charset_id,
+                    "attr_len": attr_len,
+                    "attr_val": attr_val,
+                })
+
             items.append({
                 "type": "media_element",
                 "uid": uid,
@@ -261,6 +335,8 @@ def avrcp_decode_get_folder_items_rsp(data: bytes):
                 "charset_id": charset_id,
                 "name_len": name_len,
                 "name": name,
+                "num_attrs": num_attrs,
+                "attrs": attrs,
             })
 
         else:
@@ -275,6 +351,40 @@ def avrcp_decode_get_folder_items_rsp(data: bytes):
         "num_items": num_items,
         "items": items,
     }
+
+def avrcp_decode_ca_ct_rsp(ev):
+    has_valid_data = False
+    body = ""
+    while True:
+        data = avrcp_rx_data_get(ev)
+        if data is None:
+            break
+
+        hdr = '<BH'
+        hdr_size = struct.calcsize(hdr)
+        if len(data) < hdr_size:
+            raise ValueError("%s: data too short", avrcp_decode_ca_ct_rsp.__name__)
+
+        rsp_code, body_len = struct.unpack_from(hdr, data)
+
+        if len(data) < hdr_size + body_len:
+            raise ValueError("%s: data too short", avrcp_decode_ca_ct_rsp.__name__)
+
+        body_bytes = data[hdr_size:hdr_size + body_len]
+        if body_len > 0:
+            has_valid_data = True
+            try:
+                body += body_bytes.decode('utf-8')
+            except Exception:
+                body += body_bytes.hex()
+
+        if rsp_code != 0x90: # response code is not continue
+            break
+
+    if not has_valid_data:
+        return None
+
+    return body
 
 def avrcp_control_connect(bd_addr=None):
     logging.debug("%s %r", avrcp_control_connect.__name__, bd_addr)
@@ -512,8 +622,8 @@ def avrcp_set_addressed_player(player_id, bd_addr=None):
     iutctl.btp_socket.send(*AVRCP['set_addressed_player'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_SET_ADDRESSED_PLAYER)
 
-def avrcp_get_folder_items(scope, start_item, end_item, attr_cnt, attr_list: list, bd_addr=None):
-    logging.debug("%s %r %r %r %r %r %r", avrcp_get_folder_items.__name__, bd_addr, scope, start_item, end_item, attr_cnt, attr_list)
+def avrcp_get_folder_items(scope, start_item, end_item, attr_list: list, bd_addr=None):
+    logging.debug("%s %r %r %r %r %r", avrcp_get_folder_items.__name__, bd_addr, scope, start_item, end_item, attr_list)
     iutctl = get_iut()
 
     data_ba = bytearray()
@@ -521,10 +631,13 @@ def avrcp_get_folder_items(scope, start_item, end_item, attr_cnt, attr_list: lis
     data_ba.extend(struct.pack('B', scope))
     data_ba.extend(struct.pack('>I', start_item))
     data_ba.extend(struct.pack('>I', end_item))
-    data_ba.extend(struct.pack('B', attr_cnt))
-    if attr_cnt >= 0x01 and attr_cnt <= 0xFE:
-        if len[attr_list] != attr_cnt:
-            raise BTPError("attr_list should be the same as attr_cnt when attr_cnt is 0x01~0xFE")
+
+    if attr_list is None:
+        data_ba.extend(struct.pack('B', 0xFF))
+    elif not attr_list:
+        data_ba.extend(struct.pack('B', 0))
+    else:
+        data_ba.extend(struct.pack('B', len(attr_list)))
         for attr in attr_list:
             data_ba.extend(struct.pack('>I', attr))
 
@@ -561,7 +674,10 @@ def avrcp_change_path(uid_counter, direction, uid, bd_addr=None):
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
     data_ba.extend(struct.pack('>H', uid_counter))
     data_ba.extend(struct.pack('B', direction))
-    data_ba.extend(uid)
+    if direction == AVRCPChangePathDirection.FOLDER_UP:
+        data_ba.extend(b'\xff\xff\xff\xff\xff\xff\xff\xff')
+    else:
+        data_ba.extend(uid)
 
     iutctl.btp_socket.send(*AVRCP['change_path'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_CHANGE_PATH)
@@ -620,47 +736,103 @@ def avrcp_add_to_now_playing(scope, uid, uid_counter, bd_addr=None):
     iutctl.btp_socket.send(*AVRCP['add_to_now_playing'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_ADD_TO_NOW_PLAYING)
 
-def avrcp_tg_register_notification(event_id, payload=None, bd_addr=None):
-    logging.debug("%s %r %r %r", avrcp_tg_register_notification.__name__, bd_addr, event_id, payload)
+def avrcp_tg_register_notification(event_id, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_tg_register_notification.__name__, bd_addr, event_id)
     iutctl = get_iut()
 
     data_ba = bytearray()
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
     data_ba.extend(struct.pack('B', event_id))
-    if event_id == AVRCPNotificationEvents.EVENT_TRACK_CHANGED:
-        if payload is None:
-            raise BTPError("payload shouldn't be None")
-        uid = struct.pack('>Q', payload)
-        data_ba.extend(uid)
-    elif event_id == AVRCPNotificationEvents.EVENT_PLAYER_APPLICATION_SETTING_CHANGED:
-        if payload is None:
-            raise BTPError("payload shouldn't be None")
-        data_ba.extend(payload)
-    elif event_id == AVRCPNotificationEvents.EVENT_VOLUME_CHANGED:
-        if payload is None:
-            raise BTPError("payload shouldn't be None")
-        volume = struct.pack('B', payload)
-        data_ba.extend(volume)
 
     iutctl.btp_socket.send(*AVRCP['tg_register_notification'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_TG_REGISTER_NOTIFICATION)
 
-# An example event, to be changed or deleted
-# def avrcp_ev_dummy_completed(avrcp, data, data_len):
-#     logging.debug('%s %r', avrcp_ev_dummy_completed.__name__, data)
+def avrcp_tg_prepare_long_metadata(bd_addr=None):
+    logging.debug("%s %r", avrcp_tg_prepare_long_metadata.__name__, bd_addr)
+    iutctl = get_iut()
 
-#     fmt = '<B6sB'
-#     if len(data) < struct.calcsize(fmt):
-#         raise BTPError('Invalid data length')
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
 
-#     addr_type, addr, status = struct.unpack_from(fmt, data)
+    iutctl.btp_socket.send(*AVRCP['tg_prepare_long_metadata'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_TG_PREPARE_LONG_METADATA)
 
-#     addr = binascii.hexlify(addr[::-1]).lower().decode('utf-8')
+def avrcp_tg_change_path(direction, folder_name):
+    logging.debug("%s %r %r", avrcp_tg_change_path.__name__, direction, folder_name)
+    iutctl = get_iut()
 
-#     logging.debug(f'AVRCP Dummy event completed: addr {addr} addr_type '
-#                   f'{addr_type} status {status}')
+    data_ba = bytearray()
+    data_ba.extend(struct.pack('B', direction))
+    data_ba.extend(struct.pack('B', len(folder_name)))
+    data_ba.extend(folder_name.encode('utf-8'))
 
-#     avrcp.event_received(defs.BTP_AVRCP_EV_DUMMY_COMPLETED, (addr_type, addr, status))
+    iutctl.btp_socket.send(*AVRCP['tg_change_path'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_TG_CHANGE_PATH)
+
+def avrcp_ca_ct_connect(mode, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_ca_ct_connect.__name__, bd_addr, mode)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(struct.pack('B', mode))
+
+    iutctl.btp_socket.send(*AVRCP['ca_ct_connect'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_CA_CT_CONNECT)
+
+def avrcp_ca_ct_disconnect(bd_addr=None):
+    logging.debug("%s %r", avrcp_ca_ct_disconnect.__name__, bd_addr)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+
+    iutctl.btp_socket.send(*AVRCP['ca_ct_disconnect'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_CA_CT_DISCONNECT)
+
+def avrcp_get_image_props(image_handle, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_get_image_props.__name__, bd_addr, image_handle)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(image_handle.encode('utf-8'))
+
+    iutctl.btp_socket.send(*AVRCP['get_image_props'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_IMAGE_PROPS)
+
+def avrcp_get_image(image_handle, image_desc="", bd_addr=None):
+    logging.debug("%s %r %r %r", avrcp_get_image.__name__, bd_addr, image_handle, image_desc)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(image_handle.encode('utf-8'))
+    data_ba.extend(struct.pack('<H', len(image_desc)))
+    data_ba.extend(image_desc.encode('utf-8'))
+
+    iutctl.btp_socket.send(*AVRCP['get_image'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_IMAGE)
+
+def avrcp_get_linked_thumbnail(image_handle, bd_addr=None):
+    logging.debug("%s %r %r", avrcp_get_linked_thumbnail.__name__, bd_addr, image_handle)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+    data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
+    data_ba.extend(image_handle.encode('utf-8'))
+
+    iutctl.btp_socket.send(*AVRCP['get_linked_thumbnail'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_LINKED_THUMBNAIL)
+
+def avrcp_tg_play_item_without_cover_art():
+    logging.debug("%s", avrcp_tg_play_item_without_cover_art.__name__)
+    iutctl = get_iut()
+
+    data_ba = bytearray()
+
+    iutctl.btp_socket.send(*AVRCP['tg_play_item_without_cover_art'], data=data_ba)
+    avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_TG_PLAY_ITEM_WITHOUT_COVER_ART)
 
 def _avrcp_ev_decode_addr(data):
     hdr = '<6s'
@@ -756,14 +928,6 @@ def avrcp_ev_get_play_status_rsp(avrcp, data, data_len):
 def avrcp_ev_register_notification_rsp(avrcp, data, data_len):
     logging.debug('%s %r', avrcp_ev_register_notification_rsp.__name__, data)
     _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_REGISTER_NOTIFICATION_RSP)
-
-def avrcp_ev_req_continuing_rsp_rsp(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_req_continuing_rsp_rsp.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_REQ_CONTINUING_RSP_RSP)
-
-def avrcp_ev_abort_continuing_rsp_rsp(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_abort_continuing_rsp_rsp.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_ABORT_CONTINUING_RSP_RSP)
 
 def avrcp_ev_set_absolute_volume_rsp(avrcp, data, data_len):
     logging.debug('%s %r', avrcp_ev_set_absolute_volume_rsp.__name__, data)
@@ -913,6 +1077,28 @@ def avrcp_ev_general_reject_req(avrcp, data, data_len):
     logging.debug('%s %r', avrcp_ev_general_reject_req.__name__, data)
     _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GENERAL_REJECT_REQ)
 
+def avrcp_ev_ca_ct_connected(avrcp, data, data_len):
+    logging.debug('%s %r', avrcp_ev_ca_ct_connected.__name__, data)
+    addr = _avrcp_ev_decode_addr(data)[0]
+    avrcp.add_connection(addr, defs.BTP_AVRCP_EV_CA_CT_CONNECTED)
+
+def avrcp_ev_ca_ct_disconnected(avrcp, data, data_len):
+    logging.debug('%s %r', avrcp_ev_ca_ct_disconnected.__name__, data)
+    addr = _avrcp_ev_decode_addr(data)[0]
+    avrcp.remove_connection(addr, defs.BTP_AVRCP_EV_CA_CT_CONNECTED)
+
+def avrcp_ev_get_image_props_rsp(avrcp, data, data_len):
+    logging.debug('%s %r', avrcp_ev_get_image_props_rsp.__name__, data)
+    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
+
+def avrcp_ev_get_image_rsp(avrcp, data, data_len):
+    logging.debug('%s %r', avrcp_ev_get_image_rsp.__name__, data)
+    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_IMAGE_RSP)
+
+def avrcp_ev_get_linked_thumbnail_rsp(avrcp, data, data_len):
+    logging.debug('%s %r', avrcp_ev_get_linked_thumbnail_rsp.__name__, data)
+    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_LINKED_THUMBNAIL_RSP)
+
 AVRCP_EV = {
     defs.BTP_AVRCP_EV_CONTROL_CONNECTED: avrcp_ev_control_connected,
     defs.BTP_AVRCP_EV_CONTROL_DISCONNECTED: avrcp_ev_control_disconnected,
@@ -933,8 +1119,6 @@ AVRCP_EV = {
     defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_RSP: avrcp_ev_get_element_attrs_rsp,
     defs.BTP_AVRCP_EV_GET_PLAY_STATUS_RSP: avrcp_ev_get_play_status_rsp,
     defs.BTP_AVRCP_EV_REGISTER_NOTIFICATION_RSP: avrcp_ev_register_notification_rsp,
-    defs.BTP_AVRCP_EV_REQ_CONTINUING_RSP_RSP: avrcp_ev_req_continuing_rsp_rsp,
-    defs.BTP_AVRCP_EV_ABORT_CONTINUING_RSP_RSP: avrcp_ev_abort_continuing_rsp_rsp,
     defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_RSP: avrcp_ev_set_absolute_volume_rsp,
     defs.BTP_AVRCP_EV_SET_ADDRESSED_PLAYER_RSP: avrcp_ev_set_addressed_player_rsp,
     defs.BTP_AVRCP_EV_SET_BROWSED_PLAYER_RSP: avrcp_ev_set_browsed_player_rsp,
@@ -972,4 +1156,9 @@ AVRCP_EV = {
     defs.BTP_AVRCP_EV_SEARCH_REQ: avrcp_ev_search_req,
     defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_REQ: avrcp_ev_add_to_now_playing_req,
     defs.BTP_AVRCP_EV_GENERAL_REJECT_REQ: avrcp_ev_general_reject_req,
+    defs.BTP_AVRCP_EV_CA_CT_CONNECTED: avrcp_ev_ca_ct_connected,
+    defs.BTP_AVRCP_EV_CA_CT_DISCONNECTED: avrcp_ev_ca_ct_disconnected,
+    defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP: avrcp_ev_get_image_props_rsp,
+    defs.BTP_AVRCP_EV_GET_IMAGE_RSP: avrcp_ev_get_image_rsp,
+    defs.BTP_AVRCP_EV_GET_LINKED_THUMBNAIL_RSP: avrcp_ev_get_linked_thumbnail_rsp,
 }

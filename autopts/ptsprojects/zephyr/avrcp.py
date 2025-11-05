@@ -19,8 +19,7 @@ from autopts.ptsprojects.zephyr.ztestcase import ZTestCase
 from autopts.pybtp import btp, defs
 from autopts.ptsprojects.zephyr.avrcp_wid import avrcp_wid_hdl
 from autopts.client import get_unique_name
-from autopts.pybtp.types import Addr
-
+from autopts.pybtp.types import Addr, AVRCPChangePathDirection
 
 def set_pixits(ptses):
     pts = ptses[0]
@@ -33,7 +32,7 @@ def set_pixits(ptses):
     pts.set_pixit("AVRCP", "TSPX_delete_link_key", "TRUE")
     pts.set_pixit("AVRCP", "TSPX_time_guard", "600000")
     pts.set_pixit("AVRCP", "TSPX_avrcp_only", "FALSE")
-    pts.set_pixit("AVRCP", "TSPX_search_string", "3")
+    pts.set_pixit("AVRCP", "TSPX_search_string", "1")
     pts.set_pixit("AVRCP", "TSPX_establish_avdtp_stream", "TRUE")
     pts.set_pixit("AVRCP", "TSPX_use_implicit_send", "TRUE")
     pts.set_pixit("AVRCP", "TSPX_avrcp_version", "")
@@ -75,6 +74,41 @@ def test_cases(ptses):
         TestFunc(btp.a2dp_register_ep, defs.BTP_A2DP_CMD_ROLE_SINK, defs.BTP_A2DP_CMD_CODEC_SBC),
     ]
 
+    custom_test_cases = [
+        ZTestCase("AVRCP", "AVRCP/TG/MCN/CB/BI-02-C",
+                  cmds=pre_conditions +
+                         [TestFunc(lambda: pts.update_pixit_param(
+                          "AVRCP", "TSPX_empty_folder", "empty_folder")),
+                          TestFunc(btp.avrcp_tg_change_path,
+                                   AVRCPChangePathDirection.FOLDER_DOWN,
+                                   "empty_folder")],
+                  generic_wid_hdl=avrcp_wid_hdl),
+        ZTestCase("AVRCP", "AVRCP/TG/MCN/CB/BI-03-C",
+                  cmds=pre_conditions +
+                         [TestFunc(lambda: pts.update_pixit_param(
+                          "AVRCP", "TSPX_empty_folder", "empty_folder")),
+                          TestFunc(btp.avrcp_tg_change_path,
+                                   AVRCPChangePathDirection.FOLDER_DOWN,
+                                   "empty_folder")],
+                  generic_wid_hdl=avrcp_wid_hdl),
+        ZTestCase("AVRCP", "AVRCP/TG/CA/BI-08-C",
+                  cmds=pre_conditions +
+                         [TestFunc(lambda: pts.update_pixit_param(
+                          "AVRCP", "TSPX_no_cover_art_folder", "no_cover_art_folder")),
+                          TestFunc(btp.avrcp_tg_change_path,
+                                   AVRCPChangePathDirection.FOLDER_DOWN,
+                                   "no_cover_art_folder")],
+                  generic_wid_hdl=avrcp_wid_hdl),
+        ZTestCase("AVRCP", "AVRCP/TG/CA/BI-09-C",
+                  cmds=pre_conditions +
+                         [TestFunc(lambda: pts.update_pixit_param(
+                          "AVRCP", "TSPX_no_cover_art_folder", "no_cover_art_folder")),
+                          TestFunc(btp.avrcp_tg_change_path,
+                                   AVRCPChangePathDirection.FOLDER_DOWN,
+                                   "no_cover_art_folder")],
+                  generic_wid_hdl=avrcp_wid_hdl),
+    ]
+
     test_case_name_list = pts.get_test_case_list('AVRCP')
     tc_list = []
 
@@ -82,6 +116,11 @@ def test_cases(ptses):
     for tc_name in test_case_name_list:
         instance = ZTestCase('AVRCP', tc_name, cmds=pre_conditions,
                              generic_wid_hdl=avrcp_wid_hdl)
+
+        for custom_tc in custom_test_cases:
+            if tc_name == custom_tc.name:
+                instance = custom_tc
+                break
 
         tc_list.append(instance)
 

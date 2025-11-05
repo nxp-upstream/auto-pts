@@ -563,38 +563,49 @@ class AVRCPVendorUiqueOperationID:
     Next_Group     = 0x0000
     Previous_Group = 0x0001
 
-class AVRCPSpecificOperation:
-    # Capabilities
-    Get_Capabilities = 0x10
-    # Player Application Settings
-    List_Player_Application_Setting_Attributes    = 0x11
-    List_Player_Application_Setting_Values        = 0x12
-    Get_Current_Player_Application_Setting_Value  = 0x13
-    Set_Player_Application_Setting_Value          = 0x14
-    Get_Player_Application_Setting_Attribute_Text = 0x15
-    Get_Player_Application_Setting_Value_Text     = 0x16
-    # TD: 0x17, 0x18 
-    # Metadata Attributes for Current Media Item
-    Get_Element_Attributes = 0x20
-    # Notifications
-    Get_Play_Status        = 0x30
-    Register_Notification  = 0x31
-    # Absolute Volume
-    Set_Absolute_Volume                = 0x50
-    # MediaPlayerSelection
-    Set_Addressed_Player               = 0x60
-    Get_Folder_Items_Media_Player_List = 0x71
-    Get_Total_Number_Of_Items          = 0x75
-    # Browsing
-    Set_Browse_Player   = 0x70
-    Change_Path         = 0x72
-    Get_Item_Attributes = 0x73
-    PLAY_ITEM           = 0x74
-    # Search
-    Search              = 0x80
-    # NowPlaying
-    Add_To_Now_Playing  = 0x90
+class AVRCPRspCode:
+	NOT_IMPLEMENTED = 0x08
+	ACCEPTED = 0x09
+	REJECTED = 0x0A
+	IN_TRANSITION = 0x00B
+	IMPLEMENTED = 0x0C
+	STABLE = 0x0C
+	CHANGED = 0x0D
+	INTERIM = 0x0F
 
+class AVRCPStatus:
+	INVALID_COMMAND = 0x00
+	INVALID_PARAMETER = 0x01
+	PARAMETER_CONTENT_ERROR = 0x02
+	INTERNAL_ERROR = 0x03
+	OPERATION_COMPLETED = 0x04
+	UID_CHANGED = 0x05
+	INVALID_DIRECTION = 0x07
+	NOT_A_DIRECTORY = 0x08
+	DOES_NOT_EXIST = 0x09
+	INVALID_SCOPE = 0x0a
+	RANGE_OUT_OF_BOUNDS = 0x0b
+	FOLDER_ITEM_IS_NOT_PLAYABLE = 0x0c
+	MEDIA_IN_USE = 0x0d
+	NOW_PLAYING_LIST_FULL = 0x0e
+	SEARCH_NOT_SUPPORTED = 0x0f
+	SEARCH_IN_PROGRESS = 0x10
+	INVALID_PLAYER_ID = 0x11
+	PLAYER_NOT_BROWSABLE = 0x12
+	PLAYER_NOT_ADDRESSED = 0x13
+	NO_VALID_SEARCH_RESULTS = 0x14
+	NO_AVAILABLE_PLAYERS = 0x15
+	ADDRESSED_PLAYER_CHANGED = 0x16
+
+class AVRCPMediaAttributes:
+	TITLE = 0x01
+	ARTIST = 0x02
+	ALBUM = 0x03
+	TRACK_NUMBER = 0x04
+	TOTAL_TRACKS = 0x05
+	GENRE = 0x06
+	PLAYING_TIME = 0x07
+	DEFAULT_COVER_ART = 0x08
 
 class AVRCPMediaContentNavigationScope:
     Media_Player_List               = 0x00

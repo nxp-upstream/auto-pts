@@ -61,6 +61,7 @@ class AVRCP:
         self.virtual_filesystem_items = []
         self.search_items = []
         self.now_playing_items = []
+        self.discovered_media_items = []
         self.uid_counter = 0
 
     def conn_lookup_addr(self, addr):
