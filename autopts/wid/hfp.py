@@ -500,6 +500,13 @@ def hdl_wid_43(params: WIDParams):
     return True
 
 
+def hdl_wid_44(_: WIDParams):
+    """
+    Verify the DTMF code %s, then click Ok.
+    """
+    return True
+
+
 def hdl_wid_45(_: WIDParams):
     """
     Using the Implemenation Under Test (IUT), disable  EC/NR, then click Ok.
@@ -910,8 +917,7 @@ def hdl_wid_98(_: WIDParams):
     1. Close the service level connection (SLC)
     2. Powering off the Implementation Under Test (IUT)
     """
-    btp.hfp_disable_slc()
-
+    btp.gap_disconn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
     return True
 
 
