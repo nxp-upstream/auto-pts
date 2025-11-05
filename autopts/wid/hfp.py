@@ -85,7 +85,7 @@ def hdl_wid_1(params: WIDParams):
 
     if params.test_case_name in ['HFP/AG/RHH/BV-04-C', 'HFP/AG/RHH/BV-05-C', 'HFP/AG/RHH/BV-06-C', 'HFP/AG/RHH/BV-07-C',
                                  'HFP/AG/RHH/BV-08-C']:
-        btp.hfp_ag_enable_call(defs.BTP_HFP_AG_ENABLE_CALL_FLAGS_INCOMING_HELD)
+        btp.hfp_set_ongoing_calls("1234567", 0, 6, 1, True)
 
     btp.gap_pair(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
 
@@ -98,6 +98,11 @@ def hdl_wid_1(params: WIDParams):
             btp.hfp_enable_slc(None, 1, 1)
     else:
         btp.hfp_enable_slc(None, 1, 0)
+
+    if params.test_case_name in ['HFP/AG/RHH/BV-04-C', 'HFP/AG/RHH/BV-05-C', 'HFP/AG/RHH/BV-06-C', 'HFP/AG/RHH/BV-07-C',
+                                 'HFP/AG/RHH/BV-08-C']:
+        stack.hfp.wait_call_status(0, defs.BTP_HFP_CALL_STATUS_INCOMING_HELD)
+
     return True
 
 
@@ -1590,7 +1595,7 @@ def hdl_wid_246(params: WIDParams):
     Place a call from an external line to the Implementation Under Test (IUT), or putting the current active call on hold.  When the call is active or hold, click Ok.
     """
     if params.test_case_name in ['HFP/AG/ECS/BV-02-C']:
-        btp.hfp_ag_enable_call(defs.BTP_HFP_AG_ENABLE_CALL_FLAGS_ON_GOING_CALL)
+        btp.hfp_set_ongoing_calls("1234567", 0, 1, 1, True)
     else:
         btp.hfp_ag_enable_call()
     return True
