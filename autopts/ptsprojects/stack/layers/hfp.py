@@ -20,6 +20,7 @@ class HFP:
     def __init__(self):
         self.sco_connected = False
         self.need_check_sco_connection = False
+        self.vr_need_terminate = False
         self.event_queues = {
             defs.BTP_HFP_EV_DUMMY_COMPLETED: [],
             defs.BTP_HFP_EV_SCO_CONNECTED: [],
