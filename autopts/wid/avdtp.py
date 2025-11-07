@@ -146,11 +146,6 @@ def hdl_wid_1004(params: WIDParams):
     """
     description: If necessary, take action to accept the AVDTP Discover operation initiated by the tester.
     """
-    if params.test_case_name in ['AVDTP/SNK/INT/SIG/SMG/BV-11-C','AVDTP/SRC/INT/SIG/SMG/BV-13-C',
-                                 'AVDTP/SNK/INT/SIG/SMG/BV-13-C', 'AVDTP/SNK/INT/SIG/SMG/BV-33-C',
-                                 'AVDTP/SRC/INT/SIG/SMG/BV-33-C', 'AVDTP/SRC/INT/SIG/SMG/BV-11-C',
-                                 ]:
-        btp.a2dp_discover()
     return True
 
 def hdl_wid_1005(_: WIDParams):
@@ -163,11 +158,6 @@ def hdl_wid_1006(params: WIDParams):
     """
     description: If necessary, take action to accept the AVDTP Open operation initiated by the tester.
     """
-    if params.test_case_name in ['AVDTP/SRC/INT/SIG/SMG/BV-13-C', 'AVDTP/SNK/INT/SIG/SMG/BV-13-C',
-                                 'AVDTP/SNK/INT/SIG/SMG/BV-33-C', 'AVDTP/SRC/INT/SIG/SMG/BV-33-C',
-                                ]:
-        btp.a2dp_establish()
-        btp.a2dp_start()
     return True
 
 def hdl_wid_1007(_: WIDParams):
@@ -180,11 +170,6 @@ def hdl_wid_1009(params: WIDParams):
     """
     description: If necessary, take action to accept the AVDTP Set Configuration operation initiated by the tester.
     """
-    if params.test_case_name in ['AVDTP/SNK/INT/SIG/SMG/BV-11-C','AVDTP/SRC/INT/SIG/SMG/BV-13-C',
-                                 'AVDTP/SNK/INT/SIG/SMG/BV-13-C', 'AVDTP/SNK/INT/SIG/SMG/BV-33-C',
-                                 'AVDTP/SRC/INT/SIG/SMG/BV-33-C', 'AVDTP/SRC/INT/SIG/SMG/BV-11-C',
-                                 ]:
-        btp.a2dp_configure()
     return True
 
 def hdl_wid_1010(_: WIDParams):
@@ -234,10 +219,19 @@ def hdl_wid_1019(_: WIDParams):
     btp.a2dp_discover()
     return True
 
-def hdl_wid_1020(_: WIDParams):
+def hdl_wid_1020(params: WIDParams):
     """
     description: Open a streaming media channel.
     """
+    if params.test_case_name in ['AVDTP/SNK/INT/SIG/SMG/BV-33-C',
+                                'AVDTP/SNK/INT/SIG/SMG/BV-13-C',
+                                'AVDTP/SRC/INT/SIG/SMG/BV-13-C',
+                                'AVDTP/SRC/INT/SIG/SMG/BV-33-C']:
+        btp.a2dp_establish()
+        if params.test_case_name in ['AVDTP/SNK/INT/SIG/SMG/BV-33-C',
+                                    'AVDTP/SRC/INT/SIG/SMG/BV-33-C']:
+            btp.a2dp_start()
+        return True
     btp.a2dp_discover()
     btp.a2dp_configure()
     btp.a2dp_establish()
@@ -264,10 +258,15 @@ def hdl_wid_1031(params: WIDParams):
     btp.a2dp_configure()
     return True
 
-def hdl_wid_1032(_: WIDParams):
+def hdl_wid_1032(params: WIDParams):
     """
     description: Send a start command to PTS.
     """
+    if params.test_case_name in ['AVDTP/SNK/INT/SIG/SMG/BV-13-C',
+                                 'AVDTP/SRC/INT/SIG/SMG/BV-13-C']:
+        btp.a2dp_start()
+        return True
+
     btp.a2dp_discover()
     btp.a2dp_configure()
     btp.a2dp_establish()

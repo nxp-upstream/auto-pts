@@ -84,7 +84,7 @@ def a2dp_recv_media(timeout=5):
 def a2dp_ev_connected(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_connected.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
 
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_CONNECTED]
@@ -101,7 +101,7 @@ def a2dp_ev_get_capabilities_rsp(a2dp, data, data_len):
 def a2dp_ev_set_configuration_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_set_configuration_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
 
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_SET_CONFIGURATION_RSP]
@@ -112,7 +112,7 @@ def a2dp_ev_set_configuration_rsp(a2dp, data, data_len):
 def a2dp_ev_establish_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_establish_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
 
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_ESTABLISH_RSP]
@@ -123,7 +123,7 @@ def a2dp_ev_establish_rsp(a2dp, data, data_len):
 def a2dp_ev_release_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_release_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
 
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_RELEASE_RSP]
@@ -134,7 +134,7 @@ def a2dp_ev_release_rsp(a2dp, data, data_len):
 def a2dp_ev_start_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_start_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
 
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_START_RSP]
@@ -145,7 +145,7 @@ def a2dp_ev_start_rsp(a2dp, data, data_len):
 def a2dp_ev_suspend_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_suspend_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
 
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_SUSPEND_RSP]
@@ -163,7 +163,7 @@ def a2dp_ev_disconnected(a2dp, data, data_len):
 def a2dp_ev_abort_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_abort_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_ABORT_RSP]
 
@@ -171,7 +171,7 @@ def a2dp_ev_abort_rsp(a2dp, data, data_len):
 def a2dp_ev_get_config_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_get_config_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
 
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_GET_CONFIG_RSP]
@@ -180,14 +180,14 @@ def a2dp_ev_recv_media(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_recv_media.__name__, data)
     stack = get_stack()
 
-    frame_num, length = struct.unpack_from('<BB', data, 0)
+    frame_num, length = struct.unpack_from('<BB', data, 0)[0]
     media_date = list(data)[2:]
     stack.a2dp.media.append(stack.a2dp.recv_media(frame_num, length, media_date))
 
 def a2dp_ev_send_delay_report_rsp(a2dp,data, data_len):
     logging.debug('%s %r', a2dp_ev_send_delay_report_rsp.__name__, data)
     stack = get_stack()
-    errcode = struct.unpack_from('<B', data, 0)
+    errcode = struct.unpack_from('<B', data, 0)[0]
     if errcode == 0:
         stack.a2dp.status = stack.a2dp.STATUS[defs.BTP_A2DP_EV_SEND_DELAY_REPORT_RSP]
 
@@ -195,7 +195,7 @@ def a2dp_ev_discover_rsp(a2dp, data, data_len):
     logging.debug('%s %r', a2dp_ev_discover_rsp.__name__, data)
     stack = get_stack()
 
-    errcode = struct.unpack_from('<b', data, 0)
+    errcode = struct.unpack_from('<b', data, 0)[0]
     if errcode != 0:
         logging.error(f"SDP Discover failed with error code: {errcode}")
     else:
