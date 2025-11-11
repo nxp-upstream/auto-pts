@@ -100,8 +100,6 @@ def hdl_wid_5(_: WIDParams):
     description: PTS has sent a Add To Now Playing command with an invalid UID.
     The IUT must respond with the error code: Does Not Exist (0x09).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_REQ) is None:
-        return False
     return True
 
 def hdl_wid_6(_: WIDParams):
@@ -109,8 +107,6 @@ def hdl_wid_6(_: WIDParams):
     description: PTS has sent a Change Path Down command with an invalid folder UID.
     The IUT must respond with the error code: Does Not Exist (0x09).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_REQ) is None:
-        return False
     return True
 
 def hdl_wid_7(_: WIDParams):
@@ -118,8 +114,6 @@ def hdl_wid_7(_: WIDParams):
     description: PTS has sent a Get Current Player Application Setting Value command with an invalid Attribute.
     The IUT must respond with the error code: Invalid Parameter (0x01).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CURR_PLAYER_APP_SETTING_VAL_REQ) is None:
-        return False
     return True
 
 def hdl_wid_8(_: WIDParams):
@@ -127,8 +121,6 @@ def hdl_wid_8(_: WIDParams):
     description: PTS has sent a Get Folder Items command with invalid values for Start and End.
     The IUT must respond with the error code: Range Out Of Bounds (0x0B).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_9(_: WIDParams):
@@ -136,8 +128,6 @@ def hdl_wid_9(_: WIDParams):
     description: PTS has sent a Get Item Attributes command with an invalid UID Counter.
     The IUT must respond with the error code: UID Changed (0x05).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_10(_: WIDParams):
@@ -145,8 +135,6 @@ def hdl_wid_10(_: WIDParams):
     description: PTS has sent a Get Player Application Setting Attribute Text command with an invalid Attribute Id.
     The IUT must respond with the error code: Invalid Parameter (0x01).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_ATTR_TEXT_REQ) is None:
-        return False
     return True
 
 def hdl_wid_11(_: WIDParams):
@@ -154,8 +142,6 @@ def hdl_wid_11(_: WIDParams):
     description: PTS has sent a Get Player Application Setting Value Text command with an invalid Value.
     The IUT must respond with the error code: Invalid Parameter (0x01).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_VAL_TEXT_REQ) is None:
-        return False
     return True
 
 def hdl_wid_12(_: WIDParams):
@@ -169,8 +155,6 @@ def hdl_wid_13(_: WIDParams):
     description: PTS has sent a List Player Application Setting Values command with an invalid Attribute Id.
     The IUT must respond with the error code: Invalid Parameter (0x01).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_VALS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_14(_: WIDParams):
@@ -178,8 +162,6 @@ def hdl_wid_14(_: WIDParams):
     description: PTS has sent a Play Item command with an invalid UID.
     The IUT must respond with the error code: Does Not Exist (0x09).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_PLAY_ITEM_REQ) is None:
-        return False
     return True
 
 def hdl_wid_16(_: WIDParams):
@@ -187,8 +169,6 @@ def hdl_wid_16(_: WIDParams):
     description: PTS has sent a Set Absolute Volume command with an invalid Parameter Length.
     The IUT must respond with a correctly formatted Set Absolute Volume response, indicating failure.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_REQ) is None:
-        return False
     return True
 
 def hdl_wid_19(_: WIDParams):
@@ -196,8 +176,6 @@ def hdl_wid_19(_: WIDParams):
     description: PTS has sent a Set Player Application Setting Value command with an invalid Attribute and Value.
     The IUT must respond with the error code: Invalid Parameter (0x01).
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_PLAYER_APP_SETTING_VAL_REQ) is None:
-        return False
     return True
 
 def hdl_wid_20(_: WIDParams):
@@ -233,7 +211,6 @@ def hdl_wid_25(_: WIDParams):
     """
     description: Addressed Player Changed notification has been received.  Now all registered player specific notifications must be rejected.
     """
-    time.sleep(3)
     return True
 
 def hdl_wid_27(_: WIDParams):
@@ -297,7 +274,7 @@ def hdl_wid_45(_: WIDParams):
     """
     description: Take action to find a cover art img handle, then send a get-img or get-thm operation to retrieve the cover art.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -342,7 +319,7 @@ def hdl_wid_47(_: WIDParams):
     """
     description: Use Get Element Attributes to get a cover art img handle for the currently playing item, then get the cover art image.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -421,7 +398,7 @@ def hdl_wid_53(_: WIDParams):
     """
     description: Use Get Item Attributes to get a cover art img handle for the currently playing item(uid=0x0), then get the cover art image.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -476,10 +453,6 @@ def hdl_wid_650(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[SELECT] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Select, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Select, 1) is None:
-        return False
     return True
 
 
@@ -487,10 +460,6 @@ def hdl_wid_651(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[UP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Up, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Up, 1) is None:
-        return False
     return True
 
 
@@ -498,10 +467,6 @@ def hdl_wid_652(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[DOWN] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Down, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Down, 1) is None:
-        return False
     return True
 
 
@@ -509,10 +474,6 @@ def hdl_wid_653(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[LEFT] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Left, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Left, 1) is None:
-        return False
     return True
 
 
@@ -520,10 +481,6 @@ def hdl_wid_654(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[RIGHT] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Right, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Right, 1) is None:
-        return False
     return True
 
 
@@ -531,10 +488,6 @@ def hdl_wid_655(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[RIGHT UP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Right_Up, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Right_Up, 1) is None:
-        return False
     return True
 
 
@@ -542,10 +495,6 @@ def hdl_wid_656(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[RIGHT DOWN] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Right_Down, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Right_Down, 1) is None:
-        return False
     return True
 
 
@@ -553,10 +502,6 @@ def hdl_wid_657(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[LEFT UP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Left_Up, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Left_Up, 1) is None:
-        return False
     return True
 
 
@@ -564,10 +509,6 @@ def hdl_wid_658(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[LEFT DOWN] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Left_Down, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Left_Down, 1) is None:
-        return False
     return True
 
 
@@ -575,10 +516,6 @@ def hdl_wid_659(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[ROOT MENU] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Root_Menu, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Root_Menu, 1) is None:
-        return False
     return True
 
 
@@ -586,10 +523,6 @@ def hdl_wid_660(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[SETUP MENU] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Setup_Menu, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Setup_Menu, 1) is None:
-        return False
     return True
 
 
@@ -597,10 +530,6 @@ def hdl_wid_661(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[CONTENTS MENU] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Contents_Menu, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Contents_Menu, 1) is None:
-        return False
     return True
 
 
@@ -608,10 +537,6 @@ def hdl_wid_662(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[FAVORITE MENU] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Favorite_Menu, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Favorite_Menu, 1) is None:
-        return False
     return True
 
 
@@ -619,20 +544,12 @@ def hdl_wid_663(_: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[EXIT] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Exit, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Exit, 1) is None:
-        return False
     return True
 
 def hdl_wid_664(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[0] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_0, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_0, 1) is None:
-        return False
     return True
 
 
@@ -640,10 +557,6 @@ def hdl_wid_665(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[1] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_1, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_1, 1) is None:
-        return False
     return True
 
 
@@ -651,10 +564,6 @@ def hdl_wid_666(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[2] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_2, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_2, 1) is None:
-        return False
     return True
 
 
@@ -662,10 +571,6 @@ def hdl_wid_667(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[3] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_3, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_3, 1) is None:
-        return False
     return True
 
 
@@ -673,10 +578,6 @@ def hdl_wid_668(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[4] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_4, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_4, 1) is None:
-        return False
     return True
 
 
@@ -684,10 +585,6 @@ def hdl_wid_669(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[5] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_5, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_5, 1) is None:
-        return False
     return True
 
 
@@ -695,10 +592,6 @@ def hdl_wid_670(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[6] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_6, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_6, 1) is None:
-        return False
     return True
 
 
@@ -706,10 +599,6 @@ def hdl_wid_671(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[7] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_7, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_7, 1) is None:
-        return False
     return True
 
 
@@ -717,10 +606,6 @@ def hdl_wid_672(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[8] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_8, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_8, 1) is None:
-        return False
     return True
 
 
@@ -728,10 +613,6 @@ def hdl_wid_673(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[9] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_9, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_9, 1) is None:
-        return False
     return True
 
 
@@ -739,10 +620,6 @@ def hdl_wid_674(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[Dot] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Dot, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Dot, 1) is None:
-        return False
     return True
 
 
@@ -750,10 +627,6 @@ def hdl_wid_675(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[Enter] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Enter, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Enter, 1) is None:
-        return False
     return True
 
 
@@ -761,10 +634,6 @@ def hdl_wid_676(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[Clear] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Clear, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Clear, 1) is None:
-        return False
     return True
 
 
@@ -772,10 +641,6 @@ def hdl_wid_677(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[CHANNEL UP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Channel_Up, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Channel_Up, 1) is None:
-        return False
     return True
 
 
@@ -783,10 +648,6 @@ def hdl_wid_678(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[CHANNEL DOWN] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Channel_Down, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Channel_Down, 1) is None:
-        return False
     return True
 
 
@@ -794,10 +655,6 @@ def hdl_wid_679(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[PREVIOUS CHANNEL] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Previous_Channel, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Previous_Channel, 1) is None:
-        return False
     return True
 
 
@@ -805,10 +662,6 @@ def hdl_wid_680(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[SOUND SELECT] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Sound_Select, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Sound_Select, 1) is None:
-        return False
     return True
 
 
@@ -816,10 +669,6 @@ def hdl_wid_681(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[INPUT SELECT] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Input_Select, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Input_Select, 1) is None:
-        return False
     return True
 
 
@@ -827,10 +676,6 @@ def hdl_wid_682(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[DISPLAY INFO] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Display_Information, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Display_Information, 1) is None:
-        return False
     return True
 
 
@@ -838,40 +683,24 @@ def hdl_wid_683(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[HELP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Help, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Help, 1) is None:
-        return False
     return True
 
 def hdl_wid_684(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[PAGE UP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Page_Up, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Page_Up, 1) is None:
-        return False
     return True
 
 def hdl_wid_685(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[PAGE DOWN] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Page_Down, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Page_Down, 1) is None:
-        return False
     return True
 
 def hdl_wid_686(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[POWER] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Power, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Power, 1) is None:
-        return False
     return True
 
 
@@ -879,10 +708,6 @@ def hdl_wid_687(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[VOLUME UP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Volume_Up, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Volume_Up, 1) is None:
-        return False
     return True
 
 
@@ -890,10 +715,6 @@ def hdl_wid_688(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[VOLUME DOWN] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Volume_Down, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Volume_Down, 1) is None:
-        return False
     return True
 
 
@@ -901,10 +722,6 @@ def hdl_wid_689(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[MUTE] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Mute, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Mute, 1) is None:
-        return False
     return True
 
 
@@ -913,10 +730,6 @@ def hdl_wid_690(params: WIDParams):
     description: Press 'YES' if the IUT indicated receiving the[PLAY] command.Press 'NO' otherwise.
     """
     if params.test_case_name.startswith("AVRCP/TG/"):
-        if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Play, 0) is None:
-            return False
-        if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Play, 1) is None:
-            return False
         return True
     else:
         btp.avrcp_pass_through(AVCTPPassThroughOperation.Operation_Play, 0)
@@ -933,10 +746,6 @@ def hdl_wid_691(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[STOP] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Stop, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Stop, 1) is None:
-        return False
     return True
 
 
@@ -944,10 +753,6 @@ def hdl_wid_692(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[PAUSE] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Pause, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Pause, 1) is None:
-        return False
     return True
 
 
@@ -955,10 +760,6 @@ def hdl_wid_693(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[RECORD] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Record, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Record, 1) is None:
-        return False
     return True
 
 
@@ -966,10 +767,6 @@ def hdl_wid_694(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[REWIND] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Rewind, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Rewind, 1) is None:
-        return False
     return True
 
 
@@ -977,10 +774,6 @@ def hdl_wid_695(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[FAST FOWARD] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Fast_Forward, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Fast_Forward, 1) is None:
-        return False
     return True
 
 
@@ -988,10 +781,6 @@ def hdl_wid_696(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[EJECT] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Eject, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Eject, 1) is None:
-        return False
     return True
 
 
@@ -999,10 +788,6 @@ def hdl_wid_697(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[FORWARD] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Forward, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Forward, 1) is None:
-        return False
     return True
 
 
@@ -1010,10 +795,6 @@ def hdl_wid_698(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[BACKWARD] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Backward, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Backward, 1) is None:
-        return False
     return True
 
 
@@ -1021,10 +802,6 @@ def hdl_wid_699(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[ANGLE] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Angle, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Angle, 1) is None:
-        return False
     return True
 
 
@@ -1032,10 +809,6 @@ def hdl_wid_700(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[SUBPICTURE] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Subpicture, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Subpicture, 1) is None:
-        return False
     return True
 
 
@@ -1043,10 +816,6 @@ def hdl_wid_701(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[F1] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F1, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F1, 1) is None:
-        return False
     return True
 
 
@@ -1054,10 +823,6 @@ def hdl_wid_702(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[F2] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F2, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F2, 1) is None:
-        return False
     return True
 
 
@@ -1065,10 +830,6 @@ def hdl_wid_703(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[F3] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F3, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F3, 1) is None:
-        return False
     return True
 
 
@@ -1076,10 +837,6 @@ def hdl_wid_704(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[F4] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F4, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F4, 1) is None:
-        return False
     return True
 
 
@@ -1087,10 +844,6 @@ def hdl_wid_705(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[F5] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F5, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_F5, 1) is None:
-        return False
     return True
 
 
@@ -1098,10 +851,6 @@ def hdl_wid_706(params: WIDParams):
     """
     description: Press 'YES' if the IUT indicated receiving the[VEMDPR UNIQUE] command.Press 'NO' otherwise.
     """
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Vendor_Unique, 0) is None:
-        return False
-    if btp.avrcp_wait_pass_though_req(AVCTPPassThroughOperation.Operation_Vendor_Unique, 1) is None:
-        return False
     return True
 
 
@@ -2844,52 +2593,6 @@ def hdl_wid_931(_: WIDParams):
         return False
     return True
 
-def hdl_wid_1002(_: WIDParams):
-    """
-    description: If necessary, take action to accept the AVDTP Signaling Channel Connection initiated by the tester.
-    """
-    btp.a2dp_wait_for_command_rsp(defs.BTP_A2DP_EV_CONNECTED)
-
-    return True
-
-def hdl_wid_1004(_: WIDParams):
-    """
-    description: If necessary, take action to accept the AVDTP Discover operation initiated by the tester.
-    """
-    return True
-
-def hdl_wid_1006(_: WIDParams):
-    """
-    description: If necessary, take action to accept the AVDTP Open operation initiated by the tester.
-    """
-    return True
-
-def hdl_wid_1009(_: WIDParams):
-    """
-    description: If necessary, take action to accept the AVDTP Set Configuration operation initiated by the tester.
-    """
-    return True
-
-def hdl_wid_1010(params: WIDParams):
-    """
-    description: If necessary, take action to accept the AVDTP Start operation initiated by the tester.
-    """
-    return True
-
-def hdl_wid_1012(params: WIDParams):
-    """
-    description: If necessary, take action to accept the AVDTP Suspend operation initiated by the tester.
-    """
-    return True
-
-def hdl_wid_1016(_: WIDParams):
-    """
-    description: Create an AVDTP signaling channel.
-    """
-    btp.gap_wait_for_connection()
-    btp.a2dp_connect(None)
-    return True
-
 def hdl_wid_1042(_: WIDParams):
     """
     description: Take action to accept transport channels for the recently configured media stream.
@@ -2902,7 +2605,7 @@ def hdl_wid_2001(params: WIDParams):
     """
     btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_BROWSING_CONNECTED)
     if params.test_case_name in ['AVRCP/CT/CA/BV-15-C']:
-        btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+        btp.avrcp_ca_ct_connect()
         if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
             return False
     return True
@@ -2979,184 +2682,138 @@ def hdl_wid_3001(_: WIDParams):
     """
     description: Take action to send a valid response to the [Add To Now Playing] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3002(_: WIDParams):
     """
     description: Take action to send a valid response to the [Change Path] <Down> command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3003(_: WIDParams):
     """
     description: Take action to send a valid response to the [Change Path] <Up> command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_CHANGE_PATH_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3004(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Capabilities] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CAPS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3005(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Current Player Application Setting Value] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_CURR_PLAYER_APP_SETTING_VAL_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3006(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Element Attributes] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3007(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Folder Items] with the scope <Media Player List> command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3008(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Folder Items] with the scope <Now Playing> command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3009(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Folder Items] with the scope <Search Results> command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3010(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Folder Items] with the scope <Virtual File System> command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3011(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Item Attributes] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3013(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Play Status] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAY_STATUS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3014(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Player Application Setting Attribute Text] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_ATTR_TEXT_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3015(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Player Application Setting Value Text] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_VAL_TEXT_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3017(_: WIDParams):
     """
     description: Take action to send a valid response to the [List Player Application Setting Attributes] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_ATTRS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3018(_: WIDParams):
     """
     description: Take action to send a valid response to the [List Player Application Setting Values] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_VALS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3019(_: WIDParams):
     """
     description: Take action to send a valid response to the [Play Item] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_PLAY_ITEM_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3020(_: WIDParams):
     """
     Take action to send a valid response to the [Search] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SEARCH_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3021(_: WIDParams):
     """
     description: Take action to send a valid response to the [Set Absolute Volume] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3022(_: WIDParams):
     """
     description: Take action to send a valid response to the [Set Addressed Player] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ADDRESSED_PLAYER_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3023(_: WIDParams):
     """
     description: Take action to send a valid response to the [Set Browsed Player] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_BROWSED_PLAYER_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3024(_: WIDParams):
     """
     description: Take action to send a valid response to the [Subunit Info] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SUBUNIT_INFO_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3025(_: WIDParams):
     """
     description: Take action to send a valid response to the [Unit Info] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_UNIT_INFO_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3026(_: WIDParams):
@@ -3888,15 +3545,13 @@ def hdl_wid_3098(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Total Number of Items] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_TOTAL_NUMBER_OF_ITEMS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3100(_: WIDParams):
     """
     description: Take action to use the [Get Folder Items] command to find media with a Cover Art Img Handle.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -3909,7 +3564,7 @@ def hdl_wid_3101(_: WIDParams):
     """
     description: Take action to use the [Get Item Attributes] command with the <Cover Art> attribute.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -3935,7 +3590,7 @@ def hdl_wid_3104(_: WIDParams):
     """
     description: Take action to use the [Get Element Attributes] command with the <Cover Art> attribute.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -3973,7 +3628,7 @@ def hdl_wid_4024(_: WIDParams):
     """
     description:  Take action to initiate an OBEX CONNECT REQ.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
     return True
@@ -4049,7 +3704,7 @@ def hdl_wid_4070(_: WIDParams):
     """
     description:  Take action to initiate a GetImg operation using the Native image descriptor for an image.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -4067,7 +3722,7 @@ def hdl_wid_4070(_: WIDParams):
         return False
 
     btp.avrcp_get_image_props(image_handle)
-    body = btp.avrcp_decode_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
+    body = btp.avrcp_wait_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
     if body is None:
         return False
 
@@ -4086,7 +3741,7 @@ def hdl_wid_4071(_: WIDParams):
     """
     description:  Take action to initiate a GetLinkedThumbnail operation.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -4112,7 +3767,7 @@ def hdl_wid_4072(_: WIDParams):
     """
     description:  Take action to initiate a GetImg operation using the Thumbnail image descriptor for an image.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -4130,7 +3785,7 @@ def hdl_wid_4072(_: WIDParams):
         return False
 
     btp.avrcp_get_image_props(image_handle)
-    body = btp.avrcp_decode_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
+    body = btp.avrcp_wait_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
     if body is None:
         return False
 
@@ -4162,7 +3817,7 @@ def hdl_wid_4073(_: WIDParams):
     """
     description:  Take action to initiate a GetImgProperties operation, then send a GetImg operation using a variant image descriptor(not the thumbnail variant) for an image.
     """
-    btp.avrcp_ca_ct_connect(mode=defs.AVRCP_CONNECT_MODE_L2CAP)
+    btp.avrcp_ca_ct_connect()
     if not btp.avrcp_wait_for_connection(defs.BTP_AVRCP_EV_CA_CT_CONNECTED):
         return False
 
@@ -4180,7 +3835,7 @@ def hdl_wid_4073(_: WIDParams):
         return False
 
     btp.avrcp_get_image_props(image_handle)
-    body = btp.avrcp_decode_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
+    body = btp.avrcp_wait_ca_ct_rsp(defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP)
     if body is None:
         return False
 

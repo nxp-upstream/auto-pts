@@ -184,26 +184,17 @@ def avrcp_rx_data_get(ev, bd_addr=None, timeout=5):
     stack = get_stack()
     return stack.avrcp.rx_data_get(pts_addr_get(bd_addr), ev, timeout)
 
-def _avrcp_wait_pass_though(ev, opid, state, bd_addr, timeout):
+def avrcp_wait_pass_though_rsp(opid, state, bd_addr=None, timeout=10):
     stack = get_stack()
     while True:
-        rx_data = stack.avrcp.rx_data_get(pts_addr_get(bd_addr), ev, timeout)
+        rx_data = stack.avrcp.rx_data_get(pts_addr_get(bd_addr), defs.BTP_AVRCP_EV_PASS_THROUGH_RSP, timeout)
         if rx_data is None:
             break
         else:
-            if ev == defs.BTP_AVRCP_EV_PASS_THROUGH_RSP:
-                result, byte, data_len = struct.unpack_from('<BBB', rx_data)
-            else:
-                byte, data_len = struct.unpack_from('<BB', rx_data)
+            result, byte, data_len = struct.unpack_from('<BBB', rx_data)
             if byte == (opid | state << 7):
                 break
     return rx_data
-
-def avrcp_wait_pass_though_req(opid, state, bd_addr=None, timeout=10):
-    return _avrcp_wait_pass_though(defs.BTP_AVRCP_EV_PASS_THROUGH_REQ, opid, state, bd_addr, timeout)
-
-def avrcp_wait_pass_though_rsp(opid, state, bd_addr=None, timeout=10):
-    return _avrcp_wait_pass_though(defs.BTP_AVRCP_EV_PASS_THROUGH_RSP, opid, state, bd_addr, timeout)
 
 def avrcp_decode_get_folder_items_rsp(data: bytes):
     offset = 0
@@ -352,7 +343,7 @@ def avrcp_decode_get_folder_items_rsp(data: bytes):
         "items": items,
     }
 
-def avrcp_decode_ca_ct_rsp(ev):
+def avrcp_wait_ca_ct_rsp(ev):
     has_valid_data = False
     body = ""
     while True:
@@ -363,12 +354,12 @@ def avrcp_decode_ca_ct_rsp(ev):
         hdr = '<BH'
         hdr_size = struct.calcsize(hdr)
         if len(data) < hdr_size:
-            raise ValueError("%s: data too short", avrcp_decode_ca_ct_rsp.__name__)
+            raise ValueError("%s: data too short", avrcp_wait_ca_ct_rsp.__name__)
 
         rsp_code, body_len = struct.unpack_from(hdr, data)
 
         if len(data) < hdr_size + body_len:
-            raise ValueError("%s: data too short", avrcp_decode_ca_ct_rsp.__name__)
+            raise ValueError("%s: data too short", avrcp_wait_ca_ct_rsp.__name__)
 
         body_bytes = data[hdr_size:hdr_size + body_len]
         if body_len > 0:
@@ -580,7 +571,7 @@ def avrcp_get_element_attrs(attrs: list, bd_addr=None):
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
     data_ba.extend(struct.pack('B', len(attrs)))
     for attr in attrs:
-        data_ba.extend(struct.pack('>I', attr))
+        data_ba.extend(struct.pack('<I', attr))
 
     iutctl.btp_socket.send(*AVRCP['get_element_attrs'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_ELEMENT_ATTRS)
@@ -595,7 +586,7 @@ def avrcp_register_notification(event_id, interval=0, bd_addr=None):
     if event_id == AVRCPNotificationEvents.EVENT_PLAYBACK_POS_CHANGED:
         if interval == 0:
             raise BTPError("interval shouldn't be 0 when event_id is EVENT_PLAYBACK_POS_CHANGED")
-    data_ba.extend(struct.pack('>I', interval))
+    data_ba.extend(struct.pack('<I', interval))
 
     iutctl.btp_socket.send(*AVRCP['register_notification'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_REGISTER_NOTIFICATION)
@@ -617,7 +608,7 @@ def avrcp_set_addressed_player(player_id, bd_addr=None):
 
     data_ba = bytearray()
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
-    data_ba.extend(struct.pack('>H', player_id))
+    data_ba.extend(struct.pack('<H', player_id))
 
     iutctl.btp_socket.send(*AVRCP['set_addressed_player'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_SET_ADDRESSED_PLAYER)
@@ -629,8 +620,8 @@ def avrcp_get_folder_items(scope, start_item, end_item, attr_list: list, bd_addr
     data_ba = bytearray()
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
     data_ba.extend(struct.pack('B', scope))
-    data_ba.extend(struct.pack('>I', start_item))
-    data_ba.extend(struct.pack('>I', end_item))
+    data_ba.extend(struct.pack('<I', start_item))
+    data_ba.extend(struct.pack('<I', end_item))
 
     if attr_list is None:
         data_ba.extend(struct.pack('B', 0xFF))
@@ -639,7 +630,7 @@ def avrcp_get_folder_items(scope, start_item, end_item, attr_list: list, bd_addr
     else:
         data_ba.extend(struct.pack('B', len(attr_list)))
         for attr in attr_list:
-            data_ba.extend(struct.pack('>I', attr))
+            data_ba.extend(struct.pack('<I', attr))
 
     iutctl.btp_socket.send(*AVRCP['get_folder_items'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_FOLDER_ITEMS)
@@ -672,7 +663,7 @@ def avrcp_change_path(uid_counter, direction, uid, bd_addr=None):
 
     data_ba = bytearray()
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
-    data_ba.extend(struct.pack('>H', uid_counter))
+    data_ba.extend(struct.pack('<H', uid_counter))
     data_ba.extend(struct.pack('B', direction))
     if direction == AVRCPChangePathDirection.FOLDER_UP:
         data_ba.extend(b'\xff\xff\xff\xff\xff\xff\xff\xff')
@@ -690,10 +681,10 @@ def avrcp_get_item_attrs(scope, uid, uid_counter, attrs: list, bd_addr=None):
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
     data_ba.extend(struct.pack('B', scope))
     data_ba.extend(uid)
-    data_ba.extend(struct.pack('>H', uid_counter))
+    data_ba.extend(struct.pack('<H', uid_counter))
     data_ba.extend(struct.pack('B', len(attrs)))
     for attr in attrs:
-        data_ba.extend(struct.pack('>I', attr))
+        data_ba.extend(struct.pack('<I', attr))
 
     iutctl.btp_socket.send(*AVRCP['get_item_attrs'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_GET_ITEM_ATTRS)
@@ -706,7 +697,7 @@ def avrcp_play_item(scope, uid, uid_counter, bd_addr=None):
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
     data_ba.extend(struct.pack('B', scope))
     data_ba.extend(uid)
-    data_ba.extend(struct.pack('>H', uid_counter))
+    data_ba.extend(struct.pack('<H', uid_counter))
 
     iutctl.btp_socket.send(*AVRCP['play_item'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_PLAY_ITEM)
@@ -731,7 +722,7 @@ def avrcp_add_to_now_playing(scope, uid, uid_counter, bd_addr=None):
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
     data_ba.extend(struct.pack('B', scope))
     data_ba.extend(uid)
-    data_ba.extend(struct.pack('>H', uid_counter))
+    data_ba.extend(struct.pack('<H', uid_counter))
 
     iutctl.btp_socket.send(*AVRCP['add_to_now_playing'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_ADD_TO_NOW_PLAYING)
@@ -769,13 +760,12 @@ def avrcp_tg_change_path(direction, folder_name):
     iutctl.btp_socket.send(*AVRCP['tg_change_path'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_TG_CHANGE_PATH)
 
-def avrcp_ca_ct_connect(mode, bd_addr=None):
-    logging.debug("%s %r %r", avrcp_ca_ct_connect.__name__, bd_addr, mode)
+def avrcp_ca_ct_connect(bd_addr=None):
+    logging.debug("%s %r", avrcp_ca_ct_connect.__name__, bd_addr)
     iutctl = get_iut()
 
     data_ba = bytearray()
     data_ba.extend(addr2btp_ba(pts_addr_get(bd_addr)))
-    data_ba.extend(struct.pack('B', mode))
 
     iutctl.btp_socket.send(*AVRCP['ca_ct_connect'], data=data_ba)
     avrcp_command_rsp_succ(defs.BTP_AVRCP_CMD_CA_CT_CONNECT)
@@ -973,110 +963,6 @@ def avrcp_ev_general_reject_rsp(avrcp, data, data_len):
     logging.debug('%s %r', avrcp_ev_general_reject_rsp.__name__, data)
     _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GENERAL_REJECT_RSP)
 
-def avrcp_ev_unit_info_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_unit_info_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_UNIT_INFO_REQ)
-
-def avrcp_ev_subunit_info_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_subunit_info_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_SUBUNIT_INFO_REQ)
-
-def avrcp_ev_pass_through_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_pass_through_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_PASS_THROUGH_REQ)
-
-def avrcp_ev_get_caps_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_caps_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_CAPS_REQ)
-
-def avrcp_ev_list_player_app_setting_attrs_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_list_player_app_setting_attrs_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_ATTRS_REQ)
-
-def avrcp_ev_list_player_app_setting_vals_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_list_player_app_setting_vals_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_VALS_REQ)
-
-def avrcp_ev_get_curr_player_app_setting_val_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_curr_player_app_setting_val_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_CURR_PLAYER_APP_SETTING_VAL_REQ)
-
-def avrcp_ev_set_player_app_setting_val_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_set_player_app_setting_val_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_SET_PLAYER_APP_SETTING_VAL_REQ)
-
-def avrcp_ev_get_player_app_setting_attr_text_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_player_app_setting_attr_text_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_ATTR_TEXT_REQ)
-
-def avrcp_ev_get_player_app_setting_val_text_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_player_app_setting_val_text_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_VAL_TEXT_REQ)
-
-def avrcp_ev_inform_displayable_char_set_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_inform_displayable_char_set_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_INFORM_DISPLAYABLE_CHAR_SET_REQ)
-
-def avrcp_ev_inform_batt_status_of_ct_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_inform_batt_status_of_ct_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_INFORM_BATT_STATUS_OF_CT_REQ)
-
-def avrcp_ev_get_element_attrs_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_element_attrs_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_REQ)
-
-def avrcp_ev_get_play_status_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_play_status_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_PLAY_STATUS_REQ)
-
-def avrcp_ev_register_notification_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_register_notification_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_REGISTER_NOTIFICATION_REQ)
-
-def avrcp_ev_set_absolute_volume_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_set_absolute_volume_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_REQ)
-
-def avrcp_ev_set_addressed_player_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_set_addressed_player_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_SET_ADDRESSED_PLAYER_REQ)
-
-def avrcp_ev_set_browsed_player_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_set_browsed_player_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_SET_BROWSED_PLAYER_REQ)
-
-def avrcp_ev_get_folder_items_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_folder_items_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ)
-
-def avrcp_ev_change_path_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_change_path_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_CHANGE_PATH_REQ)
-
-def avrcp_ev_get_item_attrs_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_item_attrs_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_REQ)
-
-def avrcp_ev_play_item_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_play_item_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_PLAY_ITEM_REQ)
-
-def avrcp_ev_get_total_number_of_items_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_get_total_number_of_items_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GET_TOTAL_NUMBER_OF_ITEMS_REQ)
-
-def avrcp_ev_search_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_search_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_SEARCH_REQ)
-
-def avrcp_ev_add_to_now_playing_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_add_to_now_playing_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_REQ)
-
-def avrcp_ev_general_reject_req(avrcp, data, data_len):
-    logging.debug('%s %r', avrcp_ev_general_reject_req.__name__, data)
-    _avrcp_ev(avrcp, data, data_len, defs.BTP_AVRCP_EV_GENERAL_REJECT_REQ)
-
 def avrcp_ev_ca_ct_connected(avrcp, data, data_len):
     logging.debug('%s %r', avrcp_ev_ca_ct_connected.__name__, data)
     addr = _avrcp_ev_decode_addr(data)[0]
@@ -1130,32 +1016,6 @@ AVRCP_EV = {
     defs.BTP_AVRCP_EV_SEARCH_RSP: avrcp_ev_search_rsp,
     defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_RSP: avrcp_ev_add_to_now_playing_rsp,
     defs.BTP_AVRCP_EV_GENERAL_REJECT_RSP: avrcp_ev_general_reject_rsp,
-    defs.BTP_AVRCP_EV_UNIT_INFO_REQ: avrcp_ev_unit_info_req,
-    defs.BTP_AVRCP_EV_SUBUNIT_INFO_REQ: avrcp_ev_subunit_info_req,
-    defs.BTP_AVRCP_EV_PASS_THROUGH_REQ: avrcp_ev_pass_through_req,
-    defs.BTP_AVRCP_EV_GET_CAPS_REQ: avrcp_ev_get_caps_req,
-    defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_ATTRS_REQ: avrcp_ev_list_player_app_setting_attrs_req,
-    defs.BTP_AVRCP_EV_LIST_PLAYER_APP_SETTING_VALS_REQ: avrcp_ev_list_player_app_setting_vals_req,
-    defs.BTP_AVRCP_EV_GET_CURR_PLAYER_APP_SETTING_VAL_REQ: avrcp_ev_get_curr_player_app_setting_val_req,
-    defs.BTP_AVRCP_EV_SET_PLAYER_APP_SETTING_VAL_REQ: avrcp_ev_set_player_app_setting_val_req,
-    defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_ATTR_TEXT_REQ: avrcp_ev_get_player_app_setting_attr_text_req,
-    defs.BTP_AVRCP_EV_GET_PLAYER_APP_SETTING_VAL_TEXT_REQ: avrcp_ev_get_player_app_setting_val_text_req,
-    defs.BTP_AVRCP_EV_INFORM_DISPLAYABLE_CHAR_SET_REQ: avrcp_ev_inform_displayable_char_set_req,
-    defs.BTP_AVRCP_EV_INFORM_BATT_STATUS_OF_CT_REQ: avrcp_ev_inform_batt_status_of_ct_req,
-    defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_REQ: avrcp_ev_get_element_attrs_req,
-    defs.BTP_AVRCP_EV_GET_PLAY_STATUS_REQ: avrcp_ev_get_play_status_req,
-    defs.BTP_AVRCP_EV_REGISTER_NOTIFICATION_REQ: avrcp_ev_register_notification_req,
-    defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_REQ: avrcp_ev_set_absolute_volume_req,
-    defs.BTP_AVRCP_EV_SET_ADDRESSED_PLAYER_REQ: avrcp_ev_set_addressed_player_req,
-    defs.BTP_AVRCP_EV_SET_BROWSED_PLAYER_REQ: avrcp_ev_set_browsed_player_req,
-    defs.BTP_AVRCP_EV_GET_FOLDER_ITEMS_REQ: avrcp_ev_get_folder_items_req,
-    defs.BTP_AVRCP_EV_CHANGE_PATH_REQ: avrcp_ev_change_path_req,
-    defs.BTP_AVRCP_EV_GET_ITEM_ATTRS_REQ: avrcp_ev_get_item_attrs_req,
-    defs.BTP_AVRCP_EV_PLAY_ITEM_REQ: avrcp_ev_play_item_req,
-    defs.BTP_AVRCP_EV_GET_TOTAL_NUMBER_OF_ITEMS_REQ: avrcp_ev_get_total_number_of_items_req,
-    defs.BTP_AVRCP_EV_SEARCH_REQ: avrcp_ev_search_req,
-    defs.BTP_AVRCP_EV_ADD_TO_NOW_PLAYING_REQ: avrcp_ev_add_to_now_playing_req,
-    defs.BTP_AVRCP_EV_GENERAL_REJECT_REQ: avrcp_ev_general_reject_req,
     defs.BTP_AVRCP_EV_CA_CT_CONNECTED: avrcp_ev_ca_ct_connected,
     defs.BTP_AVRCP_EV_CA_CT_DISCONNECTED: avrcp_ev_ca_ct_disconnected,
     defs.BTP_AVRCP_EV_GET_IMAGE_PROPS_RSP: avrcp_ev_get_image_props_rsp,

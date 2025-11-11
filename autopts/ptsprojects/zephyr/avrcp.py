@@ -31,9 +31,9 @@ def set_pixits(ptses):
     pts.set_pixit("AVRCP", "TSPX_pin_code", "0000")
     pts.set_pixit("AVRCP", "TSPX_delete_link_key", "TRUE")
     pts.set_pixit("AVRCP", "TSPX_time_guard", "600000")
-    pts.set_pixit("AVRCP", "TSPX_avrcp_only", "FALSE")
+    pts.set_pixit("AVRCP", "TSPX_avrcp_only", "TRUE")
     pts.set_pixit("AVRCP", "TSPX_search_string", "1")
-    pts.set_pixit("AVRCP", "TSPX_establish_avdtp_stream", "TRUE")
+    pts.set_pixit("AVRCP", "TSPX_establish_avdtp_stream", "FALSE")
     pts.set_pixit("AVRCP", "TSPX_use_implicit_send", "TRUE")
     pts.set_pixit("AVRCP", "TSPX_avrcp_version", "")
     pts.set_pixit("AVRCP", "TSPX_tester_av_role", "")
@@ -69,9 +69,6 @@ def test_cases(ptses):
         TestFunc(btp.set_pts_addr, pts_bd_addr, Addr.le_public),
         TestFunc(btp.core_reg_svc_avrcp),
         TestFunc(stack.avrcp_init),
-        TestFunc(btp.core_reg_svc_a2dp),
-        TestFunc(stack.a2dp_init),
-        TestFunc(btp.a2dp_register_ep, defs.BTP_A2DP_CMD_ROLE_SINK, defs.BTP_A2DP_CMD_CODEC_SBC),
     ]
 
     custom_test_cases = [

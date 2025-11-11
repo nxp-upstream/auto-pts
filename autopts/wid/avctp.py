@@ -126,22 +126,6 @@ def hdl_wid_42(_: WIDParams):
     btp.gap_wait_for_connection()
     return True
 
-def hdl_wid_1002(_: WIDParams):
-    """
-    description: If necessary, take action to accept the AVDTP Signaling Channel Connection initiated by the tester.
-    """
-    btp.a2dp_wait_for_command_rsp(defs.BTP_A2DP_EV_CONNECTED)
-
-    return True
-
-def hdl_wid_1016(_: WIDParams):
-    """
-    description: Create an AVDTP signaling channel.
-    """
-    btp.gap_wait_for_connection()
-    btp.a2dp_connect(None)
-    return True
-
 def hdl_wid_2002(_: WIDParams):
     """
     description: Please wait while PTS creates an AVCTP control channel connection.
@@ -187,14 +171,10 @@ def hdl_wid_3006(_: WIDParams):
     """
     description: Take action to send a valid response to the [Get Element Attributes] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_GET_ELEMENT_ATTRS_REQ) is None:
-        return False
     return True
 
 def hdl_wid_3021(_: WIDParams):
     """
     description: Take action to send a valid response to the [Set Absolute Volume] command sent by the PTS.
     """
-    if btp.avrcp_rx_data_get(defs.BTP_AVRCP_EV_SET_ABSOLUTE_VOLUME_REQ) is None:
-        return False
     return True
