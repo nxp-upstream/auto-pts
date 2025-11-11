@@ -125,4 +125,6 @@ ID  Name
  0x22 HFP_AG Service
  0x23 A2DP Service
  0x24 AVDTP Service
+ 0x25 AVRCP Service
+ 0x26 AVCTP Service
  # GENERATOR append 1

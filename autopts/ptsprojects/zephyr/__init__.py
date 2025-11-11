@@ -17,7 +17,9 @@ from . import (
                a2dp,
                aics,
                ascs,
+               avctp,
                avdtp,
+               avrcp,
                bap,
                bass,
                cap,
@@ -52,7 +54,7 @@ from . import (
                vcp,
                vcs,
                vocs,
-               # GENERATOR append 1
+# GENERATOR append 1
 )
 
 __all__ = [
@@ -60,6 +62,8 @@ __all__ = [
     "avdtp",
     "aics",
     "ascs",
+    "avctp",
+    "avrcp",
     "bap",
     "bass",
     "cap",
