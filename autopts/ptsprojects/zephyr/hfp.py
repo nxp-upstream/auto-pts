@@ -914,6 +914,12 @@ def test_cases(ptses):
                         TestFunc(btp.hfp_set_ongoing_calls, "1234567", 0, 1, 1),
                         TestFunc(btp.hfp_set_ongoing_calls, "7654321", 0, 0, 0, True)],
                   generic_wid_hdl=hfp_wid_hdl),
+        ZTestCase("HFP", "HFP/HF/NUM/BV-02-C",
+                  cmds = pre_conditions +
+                         [TestFunc(btp.hfp_hf_register),
+                          TestFunc(btp.gap_set_conn),
+                          TestFunc(btp.gap_set_gendiscov)],
+                  generic_wid_hdl = hfp_wid_hdl),
     ]
 
     test_case_name_list = pts.get_test_case_list('HFP')
