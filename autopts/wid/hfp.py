@@ -40,8 +40,8 @@ def hdl_wid_0(params: WIDParams):
     btp.gap_set_conn()
     btp.gap_set_gendiscov()
 
-    if params.test_case_name in ["HFP/AG/SLC/BV-01-C", "HFP/AG/SLC/BV-02-C", "HFP/AG/SLC/BV-04-C", "HFP/AG/SLC/BV-05-C",
-                                 "HFP/AG/SLC/BV-07-C"]:
+    if params.test_case_name in ["HFP/AG/SLC/BV-01-C", "HFP/AG/SLC/BV-02-C", "HFP/AG/SLC/BV-04-C",
+                                 "HFP/AG/SLC/BV-05-C", "HFP/AG/SLC/BV-07-C"]:
         btp.hfp_ag_register()
         return True
     if params.test_case_name in ["HFP/HF/SLC/BV-01-C"]:
@@ -53,7 +53,6 @@ def hdl_wid_0(params: WIDParams):
         return True
 
     if params.test_case_name.find('HFP/AG/') >= 0:
-        # btp.hfp_ag_discoverable()
         if not stack.gap.is_connected():
             btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
             btp.gap_wait_for_connection()
@@ -64,9 +63,7 @@ def hdl_wid_0(params: WIDParams):
         if params.test_case_name.find('HFP/AG/OOR/BV-02-C') >= 0:
             return True
 
-        btp.hfp_enable_slc(None, 1)
-    # elif params.test_case_name.find('HFP/HF/') >= 0:
-    # btp.hfp_make_discoverable()
+        btp.hfp_ag_enable_slc(channel=1)
     return True
 
 
@@ -74,10 +71,11 @@ def hdl_wid_1(params: WIDParams):
     """
     Click Ok, then initiate a service level connection from the Implementation Under Test (IUT) to the PTS.
     """
-    log("hdl_wid_1: Initiate a service level connection")
-
     stack = get_stack()
     stack.gap.set_passkey(None)
+
+    if params.test_case_name in ["HFP/HF/SLC/BV-01-C", "HFP/HF/SLC/BV-05-C"]:
+        return True
 
     if not stack.gap.is_connected():
         btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
@@ -87,7 +85,7 @@ def hdl_wid_1(params: WIDParams):
 
     if params.test_case_name in ['HFP/AG/RHH/BV-04-C', 'HFP/AG/RHH/BV-05-C', 'HFP/AG/RHH/BV-06-C', 'HFP/AG/RHH/BV-07-C',
                                  'HFP/AG/RHH/BV-08-C']:
-        btp.hfp_set_ongoing_calls("1234567", 0, 6, 1, True)
+        btp.hfp_ag_set_ongoing_calls("1234567", 0, 6, 1, True)
 
     btp.gap_pair(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
 
@@ -97,11 +95,13 @@ def hdl_wid_1(params: WIDParams):
 
     if params.test_case_name.find('HFP/AG/') >= 0:
         if not stack.hfp.is_sco_connected():
-            btp.hfp_enable_slc(None, 1, 1)
+            btp.hfp_ag_enable_slc(channel=1)
     elif params.test_case_name in ['HFP/HF/SLC/BV-11-C']:
         return True
     else:
-        btp.hfp_enable_slc(None, 1, 0)
+        if params.test_case_name in ['HFP/HF/WBS/BV-03-C']:
+            sleep(1)
+        btp.hfp_hf_enable_slc(channel=1)
 
     if params.test_case_name in ['HFP/AG/RHH/BV-04-C', 'HFP/AG/RHH/BV-05-C', 'HFP/AG/RHH/BV-06-C', 'HFP/AG/RHH/BV-07-C',
                                  'HFP/AG/RHH/BV-08-C']:
@@ -110,13 +110,14 @@ def hdl_wid_1(params: WIDParams):
     return True
 
 
-def hdl_wid_2(_: WIDParams):
+def hdl_wid_2(params: WIDParams):
     """
     Click Ok, then disable the service level connection using the Implementation Under Test (IUT).
     """
-    log("hdl_wid_2: Disable service level connection")
-
-    btp.hfp_disable_slc()
+    if params.test_case_name.find('HFP/AG/') >= 0:
+        btp.hfp_ag_disable_slc()
+    else:
+        btp.hfp_hf_disable_slc()
     return True
 
 
@@ -128,10 +129,21 @@ def hdl_wid_3(params: WIDParams):
     if params.test_case_name in ['HFP/HF/ATA/BV-02-C', 'HFP/HF/ATH/BV-03-C', 'HFP/HF/ATH/BV-04-C',
                                  'HFP/HF/ATH/BV-09-C']:
         return True
-    elif params.test_case_name in ['HFP/HF/ACC/BV-03-C', 'HFP/AG/VTA/BV-02-C']:
-        btp.hfp_enable_audio()
+    elif params.test_case_name in ['HFP/AG/VTA/BV-02-C']:
+        btp.hfp_ag_enable_audio()
         return True
-    btp.hfp_control(defs.HFP_SEND_BCC)
+    elif params.test_case_name in ['HFP/HF/ACC/BV-03-C']:
+        btp.hfp_hf_enable_audio()
+        return True
+
+    if params.test_case_name in ['HFP/AG/ACC/BV-17-C']:
+        btp.hfp_ag_send_bcc_msbc()
+        return True
+
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_send_bcc()
+    else:
+        btp.hfp_ag_send_bcc()
     return True
 
 
@@ -150,13 +162,12 @@ def hdl_wid_5(params: WIDParams):
     Place a call from an external line to the Implementation Under Test (IUT).  When the call is active, click Ok.
     """
     if params.test_case_name in ["HFP/AG/ATH/BV-03-C", "HFP/AG/ATH/BV-05-C"]:
-        btp.hfp_set_ongoing_calls("1234567", 0, 0, 0, True)
+        btp.hfp_ag_set_ongoing_calls("1234567", 0, 0, 0, True)
         return True
     if params.test_case_name in ['HFP/HF/ATH/BV-03-C']:
         btp.gap_set_conn()
         btp.gap_set_gendiscov()
-        # btp.hfp_ag_make_discoverable()
-        btp.hfp_enable_slc(None, 1)
+        btp.hfp_ag_enable_slc(channel=1)
     sleep(3)
     if params.test_case_name in ['HFP/AG/TWC/BV-04-C']:
         return True
@@ -169,17 +180,17 @@ def hdl_wid_7(params: WIDParams):
     Click Ok, then answer the incoming call on the external terminal.
     """
     if params.test_case_name in ['HFP/AG/OCL/BV-01-C', 'HFP/AG/OCM/BV-01-C', 'HFP/AG/OCN/BV-01-C']:
-        btp.hfp_control(defs.HFP_REMOTE_RING)
+        btp.hfp_ag_remote_ring()
 
     if params.test_case_name in ['HFP/AG/TWC/BV-05-C']:
         stack = get_stack()
 
-        btp.hfp_control(defs.HFP_REMOTE_RING, value=1)
+        btp.hfp_ag_remote_ring(1)
         stack.hfp.wait_call_status(1, defs.BTP_HFP_CALL_STATUS_ALERTING)
-        btp.hfp_control(defs.HFP_AG_ANSWER_CALL, value=1)
+        btp.hfp_ag_answer_call(1)
         return True
 
-    btp.hfp_control(defs.HFP_AG_ANSWER_CALL)
+    btp.hfp_ag_answer_call()
     return True
 
 
@@ -190,7 +201,7 @@ def hdl_wid_8(params: WIDParams):
     if params.test_case_name.find('HFP/HF/') >= 0:
         btp.hfp_hf_answer_call()
     else:
-        btp.hfp_control(defs.HFP_AG_ANSWER_CALL)
+        btp.hfp_ag_accept_incoming_held_call()
     return True
 
 
@@ -198,25 +209,32 @@ def hdl_wid_9(params: WIDParams):
     """
     Click Ok, then answer the incoming call using the Implementation Under Test (IUT).
     """
+    if params.test_case_name in ['HFP/HF/CIT/BV-01-C']:
+        return True
     if params.test_case_name in ['HFP/HF/ICA/BV-01-C']:
         sleep(1)
     btp.hfp_hf_answer_call()
     return True
 
 
-def hdl_wid_10(_: WIDParams):
+def hdl_wid_10(params: WIDParams):
     """
     Click Ok, then reject the incoming call using the Implemention Under Test (IUT).
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_REJECT_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_reject_call()
+    else:
+        btp.hfp_ag_reject_call()
     return True
 
 
-def hdl_wid_11(_: WIDParams):
+def hdl_wid_11(params: WIDParams):
     """
     Place the Implementation Under Test (IUT) in a mode that will allow an outgoing call initiated by the PTS, and click Ok.
     """
+    if params.test_case_name in ["HFP/AG/OCL/BV-01-C"]:
+        btp.hfp_ag_set_last_num()
     return True
 
 
@@ -228,7 +246,6 @@ def hdl_wid_12(params: WIDParams):
     sleep(3)
     if params.test_case_name in ['HFP/AG/ACC/BV-09-C']:
         sleep(3)
-    log("hdl_wid_12: External call to IUT")
     btp.hfp_ag_enable_call()
     if params.test_case_name in ['HFP/AG/TWC/BV-05-C']:
         btp.hfp_ag_last_dialed_number("7654321", 0)
@@ -243,9 +260,9 @@ def hdl_wid_13(params: WIDParams):
     sleep(3)
     if params.test_case_name in ['HFP/AG/ECC/BV-01-C', 'HFP/AG/ECC/BV-02-C',
                                  'HFP/AG/ECS/BV-03-C', 'HFP/AG/TCA/BV-05-C',
-                                 'HFP/AG/TWC/BV-01-C', 'HFP/AG/TWC/BV-03-C',
-                                 'HFP/AG/TWC/BV-04-C']:
-        btp.hfp_control(defs.HFP_TWC_CALL)
+                                 'HFP/AG/TWC/BV-01-C', 'HFP/AG/TWC/BV-02-C',
+                                 'HFP/AG/TWC/BV-03-C', 'HFP/AG/TWC/BV-04-C']:
+        btp.hfp_ag_twc_call()
         return True
 
     btp.hfp_ag_enable_call()
@@ -265,7 +282,6 @@ def hdl_wid_15(_: WIDParams):
     """
     Click Ok, then end the call using the external terminal.
     """
-    log("hdl_wid_15: End the call using external terminal")
     sleep(10)
     # End the call by disabling the call on AG side
     btp.hfp_ag_disable_call_external()
@@ -280,12 +296,15 @@ def hdl_wid_18(_: WIDParams):
     return True
 
 
-def hdl_wid_21(_: WIDParams):
+def hdl_wid_21(params: WIDParams):
     """
     Click Ok, then place an outgoing call from the Implementation Under Test (IUT) using an enterted phone number.
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_OUT_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_out_call()
+    else:
+        btp.hfp_ag_out_call()
     return True
 
 
@@ -294,7 +313,7 @@ def hdl_wid_22(_: WIDParams):
     Click Ok, then place an outgoing call from the Implementation Under Test (IUT) by entering the memory index.
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_OUT_MEM_CALL)
+    btp.hfp_hf_out_mem_call()
     return True
 
 
@@ -304,7 +323,7 @@ def hdl_wid_23(_: WIDParams):
     by entering a memory index which does not equal the TSPX_phone_number_memory.
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_OUT_MEM_OUTOFRANGE_CALL)
+    btp.hfp_hf_out_mem_outofrange_call()
     return True
 
 
@@ -313,15 +332,18 @@ def hdl_wid_24(_: WIDParams):
     description: Click Ok, then place an outgoing call from the Implementation Under Test (IUT) by entering the memory index.  For further clarification please see the HFP 1.5 Specification.
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_OUT_LAST_CALL)
+    btp.hfp_hf_out_last_call()
     return True
 
 
-def hdl_wid_25(_: WIDParams):
+def hdl_wid_25(params: WIDParams):
     """
     Click Ok, then end the call process from the Implementation Under Test (IUT)
     """
-    btp.hfp_control(defs.HFP_END_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_end_call()
+    else:
+        btp.hfp_ag_end_call()
     return True
 
 
@@ -330,10 +352,10 @@ def hdl_wid_27(params: WIDParams):
     Click Ok, then end the 2nd call using the Implementation Under Test (IUT).
     """
     if params.test_case_name in ['HFP/HF/TWC/BV-01-C']:
-        btp.hfp_control(defs.HFP_REJECT_HELD_CALL, value=1)
+        btp.hfp_hf_reject_held_call(1)
         return True
 
-    btp.hfp_control(defs.HFP_END_SECOND_CALL)
+    btp.hfp_hf_end_second_call(1)
     return True
 
 
@@ -352,7 +374,7 @@ def hdl_wid_29(_: WIDParams):
     """
     Click Ok, then make the held call active which will result in the active call being placed on hold.
     """
-    btp.hfp_control(defs.HFP_DISABLE_ACTIVE_CALL)
+    btp.hfp_hf_disable_active_call()
     have_active_call = 1
     return True
 
@@ -361,15 +383,18 @@ def hdl_wid_30(_: WIDParams):
     """
     Click Ok, then make the held call active which will result in the active call being placed on hold.
     """
-    btp.hfp_control(defs.HFP_HELD_ACTIVE_CALL)
+    btp.hfp_hf_held_active_call()
     return True
 
 
-def hdl_wid_31(_: WIDParams):
+def hdl_wid_31(params: WIDParams):
     """
     Click Ok, then add the held call to the conversation.
     """
-    btp.hfp_control(defs.HFP_JOIN_CONVERSATION_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_join_conversation_call()
+    else:
+        btp.hfp_ag_join_conversation_call()
     return True
 
 
@@ -377,7 +402,7 @@ def hdl_wid_32(_: WIDParams):
     """
     Click Ok, then join the held and active making one conversation and disconnect the Implementation Under Test (IUT) from the said conversation.,
     """
-    btp.hfp_control(defs.HFP_EXPLICIT_TRANSFER_CALL)
+    btp.hfp_hf_explicit_transfer_call()
     return True
 
 
@@ -385,10 +410,8 @@ def hdl_wid_33(_: WIDParams):
     """
     Click Ok, then disable the in-band ringtone using the Implementation Under Test (IUT).
     """
-    log("hdl_wid_33: Disable in-band ringtone on IUT")
-
     sleep(5)
-    btp.hfp_control(defs.HFP_DISABLE_IN_BAND)
+    btp.hfp_ag_disable_inband()
 
     return True
 
@@ -397,7 +420,7 @@ def hdl_wid_34(_: WIDParams):
     """
     Click Ok, then enable the in-band ringtone using the Implementation Under Test (IUT)
     """
-    btp.hfp_control(defs.HFP_ENABLE_INBAND_RING)
+    btp.hfp_ag_enable_inband()
     return True
 
 
@@ -409,7 +432,7 @@ def hdl_wid_35(params: WIDParams):
 
     sleep(5)
     if params.test_case_name in ['HFP/HF/OCM/BV-01-C', 'HFP/HF/ICA/BV-07-C']:
-        btp.hfp_disable_slc()
+        btp.hfp_hf_disable_slc()
     # stack = get_stack()
     return True
     # if stack.hfp.is_sco_connected():
@@ -460,7 +483,7 @@ def hdl_wid_37(params: WIDParams):
     Verify the audio is returned to the 2nd call and then click Ok.  Resume action may be needed.  If the audio is not returned to the 2nd call, click Cancel.
     """
     if params.test_case_name in ["HFP/AG/ECS/BV-03-C"]:
-        btp.hfp_control(defs.HFP_AG_HOLD, 1)
+        btp.hfp_ag_hold(1)
     return True
 
 
@@ -489,8 +512,7 @@ def hdl_wid_41(_: WIDParams):
     1. If the IUT is an Audio Gateway (AG), turn the network using the UI.
     2. Place the PTS and IUT in an RF shield box. Once the network is disabled the PTS will send an alert to your machine confirming the network connection was lost.
     """
-    log("hdl_wid_41: Disable network on IUT")
-    btp.hfp_disable_network()
+    btp.hfp_ag_disable_network()
     return True
 
 
@@ -498,8 +520,7 @@ def hdl_wid_42(_: WIDParams):
     """
     Click Ok, then enable the network using the Implementation Under Test (IUT).
     """
-    log("hdl_wid_42: Enable network on IUT")
-    btp.hfp_enable_network()
+    btp.hfp_ag_enable_network()
     return True
 
 
@@ -514,7 +535,7 @@ def hdl_wid_43(params: WIDParams):
         return False
 
     dtmf_code = data[0]
-    btp.hfp_dtmf_code_send(ord(dtmf_code[0]))
+    btp.hfp_hf_dtmf_code_send(ord(dtmf_code[0]))
     return True
 
 
@@ -530,7 +551,7 @@ def hdl_wid_45(_: WIDParams):
     Using the Implemenation Under Test (IUT), disable  EC/NR, then click Ok.
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_EC_NR_DISABLE)
+    btp.hfp_hf_ec_nr_disable()
     return True
 
 
@@ -547,7 +568,7 @@ def hdl_wid_47(params: WIDParams):
     """
     Mute the in-band ringtone on the Implementation Under Test (IUT) and then click OK.
     """
-    btp.hfp_control(defs.HFP_MUTE_INBAND_RING)
+    btp.hfp_mute_inband_ring()
     return True
 
 
@@ -601,27 +622,27 @@ def hdl_wid_53(params: WIDParams):
     if params.test_case_name in ['HFP/AG/PSI/BV-01-C']:
         value = int(params.description[-1])
         if value > 0:
-            btp.hfp_signal_strength_send(value)
+            btp.hfp_ag_signal_strength_send(value)
         else:
-            btp.hfp_signal_strength_send(5)
+            btp.hfp_ag_signal_strength_send(5)
         return True
 
     sleep(1)
     if params.description[-1] == '5':
         if params.test_case_name in ['HFP/AG/PSI/BV-01-C']:
-            btp.hfp_signal_strength_send(5)
+            btp.hfp_ag_signal_strength_send(5)
         btp.hfp_signal_strength_verify(5)
     elif params.description[-1] == '4':
         if params.test_case_name in ['HFP/AG/PSI/BV-01-C']:
-            btp.hfp_signal_strength_send(4)
+            btp.hfp_ag_signal_strength_send(4)
         btp.hfp_signal_strength_verify(4)
     elif params.description[-1] == '3':
         if params.test_case_name in ['HFP/AG/PSI/BV-01-C']:
-            btp.hfp_signal_strength_send(3)
+            btp.hfp_ag_signal_strength_send(3)
         btp.hfp_signal_strength_verify(3)
     elif params.description[-1] == '2':
         if params.test_case_name in ['HFP/AG/PSI/BV-01-C']:
-            btp.hfp_signal_strength_send(2)
+            btp.hfp_ag_signal_strength_send(2)
         btp.hfp_signal_strength_verify(2)
     elif params.description[-1] == '1':
         btp.hfp_signal_strength_verify(1)
@@ -629,7 +650,7 @@ def hdl_wid_53(params: WIDParams):
     return True
 
 
-def hdl_wid_54(params: WIDParams):
+def hdl_wid_54(_: WIDParams):
     """
         Verify that the Implementation Under Test (IUT) reports the roam status as active, then click Ok.
     """
@@ -639,7 +660,7 @@ def hdl_wid_54(params: WIDParams):
     return True
 
 
-def hdl_wid_55(params: WIDParams):
+def hdl_wid_55(_: WIDParams):
     """
     Verify that the Implemenatation Under Test (IUT) reports the roam status as inactive, then click Ok.
     """
@@ -653,9 +674,7 @@ def hdl_wid_56(_: WIDParams):
     """
     Enable roaming on the Implementation Under Test (IUT), then click Ok.
     """
-    log("hdl_wid_56: Enable roaming on IUT")
-
-    btp.hfp_make_roam_active()
+    btp.hfp_ag_make_roam_active()
 
     return True
 
@@ -666,12 +685,12 @@ def hdl_wid_57(_: WIDParams):
     """
     log("hdl_wid_56: Disable roaming on IUT")
 
-    btp.hfp_make_roam_inactive()
+    btp.hfp_ag_make_roam_inactive()
 
     return True
 
 
-def hdl_wid_59(params: WIDParams):
+def hdl_wid_59(_: WIDParams):
     """
     Verify that the Implementation Under Test (IUT) reports the Audio Gateway (AG) battery level as fully charged, then click Ok.
     """
@@ -685,10 +704,8 @@ def hdl_wid_60(_: WIDParams):
     """
     Click Ok, then manipulate the Implementation Under Test (IUT) so that the battery is fully charged.
     """
-    log("hdl_wid_60: Set battery level to fully charged")
-
     sleep(10)
-    btp.hfp_make_battery_full_charged()
+    btp.hfp_ag_make_battery_full_charged()
 
     return True
 
@@ -697,10 +714,8 @@ def hdl_wid_61(_: WIDParams):
     """
     Manipulate the Implementation Under Test (IUT) so that the battery level is not fully charged, then click Ok.
     """
-    log("hdl_wid_61: Set battery level to not fully charged")
-
     sleep(10)
-    btp.hfp_make_battery_not_full_charged()
+    btp.hfp_ag_make_battery_not_full_charged()
 
     return True
 
@@ -725,7 +740,7 @@ def hdl_wid_63(_: WIDParams):
     """
     Using the Implementation Under Test (IUT), query the network operator, then click Ok.
     """
-    btp.hfp_query_network_operator()
+    btp.hfp_hf_query_network_operator()
     return True
 
 
@@ -734,8 +749,8 @@ def hdl_wid_64(_: WIDParams):
     Using the Implementation Under Test (IUT), query the list of currents calls on the Audio Gateway (AG),
     then click Ok.
     """
-    sleep(10)
-    btp.hfp_control(defs.HFP_QUERY_LIST_CALL)
+    # sleep(10)
+    # btp.hfp_control(defs.HFP_QUERY_LIST_CALL)
     return True
 
 
@@ -752,7 +767,7 @@ def hdl_wid_68(params: WIDParams):
     Click Ok, then use the Implementation Under Test (IUT)
     to enable private consultation with the specified call with index 2
     """
-    btp.hfp_private_consultation_mode(int(params.description[-1]))
+    btp.hfp_hf_private_consultation_mode(int(params.description[-1]))
     return True
 
 
@@ -760,52 +775,70 @@ def hdl_wid_69(params: WIDParams):
     """
     Click OK, then use the Implementation Under Test (IUT) to release the specified call with index 2
     """
-    btp.hfp_release_specified_call(int(params.description[-1]))
+    btp.hfp_hf_release_specified_call(int(params.description[-1]))
     return True
 
 
-def hdl_wid_70(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(0, 7)
+def hdl_wid_70(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_speaker_volume_send(7)
+    else:
+        btp.hfp_ag_speaker_volume_send(7)
     return True
 
 
-def hdl_wid_71(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(0, 12)
+def hdl_wid_71(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_speaker_volume_send(12)
+    else:
+        btp.hfp_ag_speaker_volume_send(12)
     return True
 
 
-def hdl_wid_72(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(0, 3)
+def hdl_wid_72(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_speaker_volume_send(3)
+    else:
+        btp.hfp_ag_speaker_volume_send(3)
     return True
 
 
 def hdl_wid_73(params: WIDParams):
     if params.test_case_name in ['HFP/AG/RSV/BV-01-C']:
-        btp.hfp_speaker_mic_volume_send(0, 7)
+        btp.hfp_ag_speaker_volume_send(7)
     else:
-        btp.hfp_speaker_mic_volume_send(1, 7)
+        if params.test_case_name.find('HFP/HF/') >= 0:
+            btp.hfp_hf_mic_volume_send(7)
+        else:
+            btp.hfp_ag_mic_volume_send(7)
     return True
 
 
-def hdl_wid_74(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(1, 12)
+def hdl_wid_74(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_mic_volume_send(12)
+    else:
+        btp.hfp_ag_mic_volume_send(12)
     return True
 
 
-def hdl_wid_75(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(1, 3)
+def hdl_wid_75(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_mic_volume_send(3)
+    else:
+        btp.hfp_ag_mic_volume_send(3)
     return True
 
 
 def hdl_wid_76(params: WIDParams):
     sleep(10)
-    btp.hfp_speaker_mic_volume_verify(0, int(re.sub(r'\D', '', params.description[-2:])))
+    btp.hfp_speaker_volume_verify(int(re.sub(r'\D', '', params.description[-2:])))
     return True
 
 
 def hdl_wid_77(params: WIDParams):
     sleep(10)
-    btp.hfp_speaker_mic_volume_verify(1, int(re.sub(r'\D', '', params.description[-2:])))
+    btp.hfp_mic_volume_verify(int(re.sub(r'\D', '', params.description[-2:])))
     return True
 
 
@@ -814,10 +847,11 @@ def hdl_wid_78(params: WIDParams):
     1. TSPX_phone_number - the 1st call
     2. TSPX_second_phone_number - the 2nd call
     """
-    if params.test_case_name in ['HFP/AG/TWC/BV-04-C', 'HFP/AG/TWC/BV-06-C']:
+    if params.test_case_name in ['HFP/AG/TWC/BV-02-C', 'HFP/AG/TWC/BV-03-C',
+                                 'HFP/AG/TWC/BV-04-C', 'HFP/AG/TWC/BV-06-C']:
         return True
 
-    btp.hfp_control(defs.HFP_TWC_CALL)
+    btp.hfp_ag_twc_call()
     return True
 
 
@@ -825,7 +859,7 @@ def hdl_wid_79(_: WIDParams):
     """
     Using the Implementation Under Test (IUT), verify that the following is a valid Audio Gateway (AG) subscriber number, then click Ok.
     """
-    btp.hfp_control(defs.HFP_ENABLE_SUB_NUMBER)
+    btp.hfp_hf_enable_sub_number()
     return True
 
 
@@ -833,17 +867,17 @@ def hdl_wid_80(_: WIDParams):
     """
     Using the Implementation Under Test (IUT), verify that the subscriber number information is not supported by the PTS, then click Ok.
     """
-    btp.hfp_control(defs.HFP_ENABLE_SUB_NUMBER)
+    btp.hfp_hf_enable_sub_number()
     return True
 
 
 def hdl_wid_81(params: WIDParams):
     """
-    Verify that the following number is a vallid number in the Audio Gateway (AG) to use as a voice tag in the Hands Free (HF), then click Ok.NP: +918067064000
+    Verify that the following number is a valid number in the Audio Gateway (AG) to use as a voice tag in the Hands Free (HF), then click Ok.NP: +918067064000
     """
     sleep(5)
     if params.test_case_name in ["HFP/AG/VTG/BV-01-C"]:
-        btp.hfp_disable_slc()
+        btp.hfp_ag_disable_slc()
     return True
 
 
@@ -852,16 +886,19 @@ def hdl_wid_82(_: WIDParams):
     Using the Implementation Under Test (IUT), request a phone number to attach to a voice tag previously entered, then click Ok.
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_ENABLE_BINP)
+    btp.hfp_hf_enable_binp()
     return True
 
 
-def hdl_wid_84(_: WIDParams):
+def hdl_wid_84(params: WIDParams):
     """
     Using the Implementation Under Test (IUT), deactivate voice recognitio
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_DISABLE_VR)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_disable_vr()
+    else:
+        btp.hfp_ag_disable_vr()
     return True
 
 
@@ -869,7 +906,7 @@ def hdl_wid_85(_: WIDParams):
     """
     Clear the memory indexed by TSPX_phone_number_memory on the AG such that  the memory slot becomes empty, then Click OK.
     """
-    btp.hfp_control(defs.HFP_CLS_MEM_CALL_LIST)
+    btp.hfp_cls_mem_call_list()
 
     return True
 
@@ -879,7 +916,7 @@ def hdl_wid_86(params: WIDParams):
     Place the Implementation Under Test (IUT) in a state which will allow a request from the PTS to activate voice recognition, then click Ok.
     """
     if params.test_case_name in ['HFP/HF/VRR/BV-01-C']:
-        btp.hfp_control(defs.HFP_HF_READY_ACCEPT_AUDIO)
+        btp.hfp_hf_ready_accept_audio()
     return True
 
 
@@ -894,7 +931,7 @@ def hdl_wid_89(_: WIDParams):
     """
     Enable calling line identification using the HF (send AT+CLIP=1 to the PTS-AG), then Click Ok.
     """
-    btp.hfp_control(defs.HFP_ENABLE_CLIP)
+    btp.hfp_hf_enable_clip()
     return True
 
 
@@ -909,7 +946,7 @@ def hdl_wid_91(_: WIDParams):
     return True
 
 
-def hdl_wid_94(_: WIDParams):
+def hdl_wid_94(params: WIDParams):
     """
     Click Ok, then move the PTS and the Implementation Under Test (IUT) out of range of each other.
     """
@@ -921,7 +958,10 @@ def hdl_wid_94(_: WIDParams):
 
     # Disconnect to simulate out of range
     sleep(1)
-    btp.hfp_disable_slc()
+    if params.test_case_name.find('HFP/AG/') >= 0:
+        btp.hfp_ag_disable_slc()
+    else:
+        btp.hfp_hf_disable_slc()
     btp.gap_disconn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
     sleep(2)
 
@@ -933,8 +973,6 @@ def hdl_wid_95(params: WIDParams):
     Click Ok, then remove the Implementation Under Test (IUT) and/or the PTS from the RF shield.
     If the out of range method was used, bring the IUT and PTS back within range.
     """
-    log("hdl_wid_95: Bring IUT back within range")
-
     # Simulate bringing devices back within range by re-establishing connection
     sleep(1)
 
@@ -943,7 +981,7 @@ def hdl_wid_95(params: WIDParams):
     if params.test_case_name.find('HFP/AG/') >= 0:
         btp.hfp_ag_discoverable()
     elif params.test_case_name.find('HFP/HF/') >= 0:
-        btp.hfp_ag_discoverable()
+        btp.hfp_hf_discoverable()
     btp.gap_set_io_cap(IOCap.no_input_output)
 
     return True
@@ -1015,12 +1053,12 @@ def hdl_wid_110(params: WIDParams):
     if params.test_case_name in ['HFP/AG/VRT/BV-02-C', "HFP/AG/EVR/BV-01-C", "HFP/AG/EVR/BV-02-C",
                                  "HFP/AG/EVR/BV-03-C"]:
         sleep(10)
-        btp.hfp_enable_audio()
+        btp.hfp_ag_enable_audio()
         return True
 
     if params.test_case_name in ['HFP/AG/VRT/BV-01-C']:
         if not get_stack().hfp.is_sco_connected():
-            btp.hfp_enable_audio()
+            btp.hfp_ag_enable_audio()
             btp.hfp_ag_vre_text(0, 1, delay=3000)
         return True
 
@@ -1049,15 +1087,21 @@ def hdl_wid_115(params: WIDParams):
     # btp.gap_conn(transport=defs.GAP_CONNECT_BREDR)
     if params.test_case_name in ['HFP/HF/TCA/BV-04-C']:
         sleep(10)
-    btp.hfp_control(defs.HFP_OUT_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_out_call()
+    else:
+        btp.hfp_ag_out_call()
     return True
 
 
-def hdl_wid_117(_: WIDParams):
+def hdl_wid_117(params: WIDParams):
     """
     End the call using the external terminal, then click Ok.
     """
-    btp.hfp_control(defs.HFP_END_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_end_call()
+    else:
+        btp.hfp_ag_end_call()
     return True
 
 
@@ -1083,19 +1127,25 @@ def hdl_wid_121(params: WIDParams):
     stack = get_stack()
     stack.gap.set_passkey(None)
 
+    if params.test_case_name in ['HFP/AG/SLC/BV-02-C', 'HFP/AG/SLC/BV-04-C']:
+        btp.hfp_ag_register()
+        btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+        return True
+
     if params.test_case_name in ['HFP/AG/RHH/BV-04-C', 'HFP/AG/RHH/BV-05-C',
                                  'HFP/AG/RHH/BV-06-C', 'HFP/AG/RHH/BV-07-C', 'HFP/AG/RHH/BV-08-C']:
-        btp.hfp_set_ongoing_calls("1234567", 0, 6, 1, True)
+        btp.hfp_ag_set_ongoing_calls("1234567", 0, 6, 1, True)
 
     if not stack.gap.is_connected():
         btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
         btp.gap_wait_for_connection()
 
     btp.gap_pair(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
-    if params.test_case_name in ['HFP/HF/SLC/BV-11-C']:
-        btp.hfp_enable_slc(None, 1, 0)
+    if params.test_case_name in ["HFP/HF/SLC/BV-01-C", "HFP/HF/SLC/BV-05-C",
+                                 'HFP/HF/SLC/BV-11-C', "HFP/HF/ATH/BV-03-C"]:
+        btp.hfp_hf_enable_slc(channel=1)
         return True
-    btp.hfp_enable_slc(None, 1)
+    btp.hfp_ag_enable_slc(channel=1)
     return True
 
 
@@ -1140,39 +1190,45 @@ def hdl_wid_130(params: WIDParams):
     Click Ok, then place the current call on hold and make the incoming/held call active using the Implementation Under Test (IUT).
     """
     if params.test_case_name in ["HFP/AG/ECS/BV-03-C"]:
-        btp.hfp_control(defs.HFP_AG_HOLD, 0)
+        btp.hfp_ag_hold()
         sleep(10)
-        btp.hfp_control(defs.HFP_ACCEPT_INCOMING_HELD_CALL, 1)
+        btp.hfp_ag_accept_incoming_held_call(1)
     else:
-        btp.hfp_control(defs.HFP_ACCEPT_INCOMING_HELD_CALL, 1)
+        if params.test_case_name.find('HFP/HF/') >= 0:
+            btp.hfp_hf_accept_incoming_held_call(1)
+        else:
+            btp.hfp_ag_accept_incoming_held_call(1)
     return True
 
 
 def hdl_wid_133(params: WIDParams):
     """
-    Click OK, then integrate the held call to the conversation using the Implementation Under Test (IUT). Both external calls will be joined in the conversation.
+    Click OK, then integrate the held call to the conversation using the Implementation Under Test (IUT).
+    Both external calls will be joined in the conversation.
     """
     if params.test_case_name in ["HFP/AG/ECC/BV-01-C"]:
-        btp.hfp_control(defs.HFP_AG_RETRIEVE, 0)
+        btp.hfp_ag_retrieve(0)
     return True
 
 
 def hdl_wid_134(_: WIDParams):
     """
-     Click Ok, then cancel the call once the PTS indicates to the Implementation Under Test (IUT) that an outgoing call has process has begun.
+     Click Ok, then cancel the call once the PTS indicates to the Implementation Under Test (IUT)
+     that an outgoing call has process has begun.
     """
     return True
 
 
 def hdl_wid_135(params: WIDParams):
     """
-    Place a call from an external line to the Implemenation Under Test (IUT).  Place the call on hold after accepting, then click Ok
+    Place a call from an external line to the Implemenation Under Test (IUT).
+    Place the call on hold after accepting, then click Ok
     """
     stack = get_stack()
     stack.gap.set_passkey(None)
 
     if params.test_case_name in ["HFP/AG/RHH/BV-01-C"]:
-        btp.hfp_set_ongoing_calls("1234567", 0, 6, 1, True)
+        btp.hfp_ag_set_ongoing_calls("1234567", 0, 6, 1, True)
         return True
 
     if not stack.gap.is_connected():
@@ -1183,9 +1239,9 @@ def hdl_wid_135(params: WIDParams):
 
     if params.test_case_name.find('HFP/AG/') >= 0:
         if not stack.hfp.is_sco_connected():
-            btp.hfp_enable_slc(None, 1, 1)
+            btp.hfp_ag_enable_slc(channel=1)
     else:
-        btp.hfp_enable_slc(None, 1, 0)
+        btp.hfp_hf_enable_slc(channel=1)
     return True
 
 
@@ -1200,23 +1256,29 @@ def hdl_wid_139(_: WIDParams):
     """
     Place a call from an external line to the Implemenation Under Test (IUT).  Place the call on hold after accepting, then click Ok
     """
-    btp.hfp_control(defs.HFP_ACCEPT_HELD_CALL)
+    btp.hfp_hf_accept_held_call()
     return True
 
 
-def hdl_wid_140(_: WIDParams):
+def hdl_wid_140(params: WIDParams):
     """
      Click Ok, then accept the held incoming call using the Implementation Under Test (IUT)
     """
-    btp.hfp_control(defs.HFP_ACCEPT_INCOMING_HELD_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_accept_incoming_held_call(1)
+    else:
+        btp.hfp_ag_accept_incoming_held_call(1)
     return True
 
 
-def hdl_wid_141(_: WIDParams):
+def hdl_wid_141(params: WIDParams):
     """
     Click OK, then reject the held incoming call using the Implementation Under Test (IUT)
     """
-    btp.hfp_control(defs.HFP_REJECT_HELD_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_reject_held_call()
+    else:
+        btp.hfp_ag_reject_held_call()
     return True
 
 
@@ -1265,11 +1327,14 @@ def hdl_wid_149(_: WIDParams):
     return True
 
 
-def hdl_wid_147(_: WIDParams):
+def hdl_wid_147(params: WIDParams):
     """
     Place an outgoing call using the Implementation Under Test (IUT).  When the call is active click Ok.,
     """
-    btp.hfp_control(defs.HFP_OUT_CALL)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_out_call()
+    else:
+        btp.hfp_ag_out_call()
     return True
 
 
@@ -1337,7 +1402,7 @@ def hdl_wid_159(_: WIDParams):
     Click OK, and then send an AT+BIA command to the PTS to activiate or deactiviate any indicator.,
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_SEND_IIA)
+    btp.hfp_hf_send_iia()
     return True
 
 
@@ -1346,7 +1411,7 @@ def hdl_wid_160(_: WIDParams):
     Impair the signal to the AG so that a reduction in signal strength can be observed. Then, click OK.
     """
     sleep(10)
-    btp.hfp_control(defs.HFP_IMPAIR_SIGNAL)
+    btp.hfp_hf_impair_signal()
     return True
 
 
@@ -1355,7 +1420,7 @@ def hdl_wid_161(_: WIDParams):
     Click OK. Then register AG on a network other than the home network.
     """
     sleep(10)
-    btp.hfp_make_roam_active()
+    btp.hfp_ag_make_roam_active()
     return True
 
 
@@ -1364,7 +1429,7 @@ def hdl_wid_162(_: WIDParams):
     Click OK. Then register AG on the home network.
     """
     sleep(10)
-    btp.hfp_make_roam_inactive()
+    btp.hfp_ag_make_roam_inactive()
     return True
 
 
@@ -1375,7 +1440,7 @@ def hdl_wid_163(params: WIDParams):
     if params.test_case_name in ['HFP/AG/IIA/BV-02-C']:
         return True
 
-    btp.hfp_make_battery_full_charged()
+    btp.hfp_ag_make_battery_full_charged()
     return True
 
 
@@ -1383,7 +1448,7 @@ def hdl_wid_164(_: WIDParams):
     """
     Click OK. Then, use a test device to simulate the presence of a control channel of a network, such that the AG is registered.
     """
-    btp.hfp_enable_network()
+    btp.hfp_ag_enable_network()
     return True
 
 
@@ -1392,25 +1457,31 @@ def hdl_wid_165(_: WIDParams):
     Click OK. Then, disable the control channel, such that the AG is de-registered.
     """
     sleep(1)
-    btp.hfp_disable_network()
+    btp.hfp_ag_disable_network()
     return True
 
 
-def hdl_wid_168(_: WIDParams):
+def hdl_wid_168(params: WIDParams):
     """
     Click OK, then initiate an audio connection using the Codec Connection Setup procedure.
     """
     sleep(1)
-    btp.hfp_control(defs.HFP_SEND_BCC)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_send_bcc()
+    else:
+        btp.hfp_ag_send_bcc()
     return True
 
 
-def hdl_wid_169(_: WIDParams):
+def hdl_wid_169(params: WIDParams):
     """
     Click OK. Then initiate an audio connection with WBS codec using the Codec Connection Setup procedure.
     """
     sleep(1)
-    btp.hfp_control(defs.HFP_SEND_BCC_MSBC)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_send_bcc_msbc()
+    else:
+        btp.hfp_ag_send_bcc_msbc()
     return True
 
 
@@ -1419,7 +1490,7 @@ def hdl_wid_169(_: WIDParams):
 #     Click OK, then take action so that the network becomes unavailable to the IUT.
 #     """
 #     if params.test_case_name in ['HFP/AG/TCA/BV-06-C']:
-#         btp.hfp_disable_network()
+#         btp.hfp_ag_disable_network()
 #     btp.hfp_make_sure_ag_registered_on_home_network()
 #     return True
 #
@@ -1436,7 +1507,7 @@ def hdl_wid_172(_: WIDParams):
     """
     Click OK. Then take action to make a change that normally would trigger a change in a non-mandatory indicator, e.g., force the AG to disable the presence of a cellular network.
     """
-    btp.hfp_enable_network()
+    btp.hfp_ag_enable_network()
     return True
 
 
@@ -1444,17 +1515,15 @@ def hdl_wid_173(_: WIDParams):
     """
     Click OK. Then adjust the battery level on the AG to a level that should cause a battery level indication to be sent to HF.
     """
-    btp.hfp_make_battery_full_charged()
+    btp.hfp_ag_make_battery_full_charged()
     return True
 
 
-def hdl_wid_175(params: WIDParams):
+def hdl_wid_175(_: WIDParams):
     """
     Click OK. Then, impair the signal to the AG so that a reduction in signal strength can be observed.
     """
-    log("hdl_wid_175: Impair signal to AG for signal strength reduction")
-    # , int(re.sub(r'\D', '', params.description[-2:]))
-    btp.hfp_control(defs.HFP_IMPAIR_SIGNAL)
+    btp.hfp_hf_impair_signal()
     return True
 
 
@@ -1470,7 +1539,7 @@ def hdl_wid_180(_: WIDParams):
     description: After performing the following action, click OK.
     Required Action: Trigger an internal event in HF that would cause an update to the AG of the supported indicator with Assigned Number: 1,2
     """
-    btp.hfp_control(defs.HFP_HF_INDICATOR_VALUE, 1, 1)  # HFP/HF/HFI/BV-01-C
+    btp.hfp_hf_indicator_value(1, 1)  # HFP/HF/HFI/BV-01-C
     return True
 
 
@@ -1482,26 +1551,38 @@ def hdl_wid_187(_: WIDParams):
     return True
 
 
-def hdl_wid_188(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(1, 15)
+def hdl_wid_188(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_mic_volume_send(15)
+    else:
+        btp.hfp_ag_mic_volume_send(15)
     return True
 
 
 def hdl_wid_189(params: WIDParams):
     if params.test_case_name in ['HFP/AG/RSV/BV-02-C']:
-        btp.hfp_speaker_mic_volume_send(0, 0)
+        btp.hfp_ag_speaker_volume_send(0)
     else:
-        btp.hfp_speaker_mic_volume_send(1, 0)
+        if params.test_case_name.find('HFP/HF/') >= 0:
+            btp.hfp_hf_mic_volume_send(0)
+        else:
+            btp.hfp_ag_mic_volume_send(0)
     return True
 
 
-def hdl_wid_190(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(0, 15)
+def hdl_wid_190(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_speaker_volume_send(15)
+    else:
+        btp.hfp_ag_speaker_volume_send(15)
     return True
 
 
-def hdl_wid_191(_: WIDParams):
-    btp.hfp_speaker_mic_volume_send(0, 0)
+def hdl_wid_191(params: WIDParams):
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_speaker_volume_send(0)
+    else:
+        btp.hfp_ag_speaker_volume_send(0)
     return True
 
 
@@ -1509,7 +1590,7 @@ def hdl_wid_193(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition audio input is activated.
     """
-    btp.hfp_control(defs.HFP_AG_VRE_STATE, 2)  # the AG is ready to accept audio input
+    btp.hfp_ag_ver_state(0)  # the AG is ready to accept audio input
     return True
 
 
@@ -1517,7 +1598,7 @@ def hdl_wid_194(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition wants to send an audio ouput.
     """
-    btp.hfp_control(defs.HFP_AG_VRE_STATE, 1)  # the AG is sending audio to the HF
+    btp.hfp_ag_ver_state(1)  # the AG is sending audio to the HF
     stack = get_stack()
     stack.hfp.vr_need_terminate = True
     return True
@@ -1527,7 +1608,7 @@ def hdl_wid_195(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition processes VR audio input from HF.
     """
-    btp.hfp_control(defs.HFP_AG_VRE_STATE, 3)  # the AG is sending audio to the HF
+    btp.hfp_ag_ver_state(2)  # the AG is sending audio to the HF
     return True
 
 
@@ -1590,7 +1671,11 @@ def hdl_wid_204(params: WIDParams):
         # and the well formatted string with a textual representation of the input sentence.
         btp.hfp_ag_vre_text(3, 1, id=1)
         return True
-    btp.hfp_control(defs.HFP_ENABLE_VR)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_enable_vr()
+    else:
+        btp.hfp_ag_enable_vr()
+
     return True
 
 
@@ -1599,7 +1684,7 @@ def hdl_wid_207(params: WIDParams):
     Perform corresponding action on HF to interrupt the audio output from AG to begin a new voice command.
     """
     if params.test_case_name in ['HFP/HF/VTA/BV-01-C']:
-        btp.hfp_control(defs.HFP_HF_READY_ACCEPT_AUDIO)
+        btp.hfp_hf_ready_accept_audio()
     return True
 
 
@@ -1611,7 +1696,10 @@ def hdl_wid_219(params: WIDParams):
     if params.test_case_name in ['HFP/AG/VRA/BV-04-C', 'HFP/AG/VRT/BV-01-C']:
         return True
 
-    btp.hfp_control(defs.HFP_DISABLE_VR)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_disable_vr()
+    else:
+        btp.hfp_ag_disable_vr()
     return True
 
 
@@ -1634,7 +1722,10 @@ def hdl_wid_222(params: WIDParams):
         return True
 
     sleep(5)
-    btp.hfp_control(defs.HFP_ENABLE_VR)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_enable_vr()
+    else:
+        btp.hfp_ag_enable_vr()
     return True
 
 
@@ -1645,20 +1736,26 @@ def hdl_wid_223(_: WIDParams):
     return True
 
 
-def hdl_wid_230(_: WIDParams):
+def hdl_wid_230(params: WIDParams):
     """
     Click OK, then initiate an audio connection using the CVSD Codec and Connection Setup procedure.
     """
-    btp.hfp_control(defs.HFP_SEND_BCC)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_send_bcc()
+    else:
+        btp.hfp_ag_send_bcc()
     return True
 
 
-def hdl_wid_231(_: WIDParams):
+def hdl_wid_231(params: WIDParams):
     """
     Click OK, then initiate an audio connection with SWB codec using the Codec Connection Setup procedure.
     """
     sleep(1)
-    btp.hfp_control(defs.HFP_SEND_BCC_SWB)
+    if params.test_case_name.find('HFP/HF/') >= 0:
+        btp.hfp_hf_send_bcc_swb()
+    else:
+        btp.hfp_ag_send_bcc_swb()
     return True
 
 
@@ -1681,7 +1778,7 @@ def hdl_wid_246(params: WIDParams):
     Place a call from an external line to the Implementation Under Test (IUT), or putting the current active call on hold.  When the call is active or hold, click Ok.
     """
     if params.test_case_name in ['HFP/AG/ECS/BV-02-C']:
-        btp.hfp_set_ongoing_calls("1234567", 0, 1, 1, True)
+        btp.hfp_ag_set_ongoing_calls("1234567", 0, 1, 1, True)
     else:
         btp.hfp_ag_enable_call()
     return True
@@ -1722,13 +1819,14 @@ def hdl_wid_561(_: WIDParams):
     return True
 
 
-def hdl_wid_606(_: WIDParams):
+def hdl_wid_606(params: WIDParams):
     """
     Disable service level connection, then click Ok.
     """
-    log("hdl_wid_606: Disable service level connection")
-
-    btp.hfp_disable_slc()
+    if params.test_case_name.find('HFP/AG/') >= 0:
+        btp.hfp_ag_disable_slc()
+    else:
+        btp.hfp_hf_disable_slc()
     return True
 
 
@@ -1754,7 +1852,7 @@ def hdl_wid_107(_: WIDParams):
     stack = get_stack()
 
     stack.hfp.wait_call_status(0, defs.BTP_HFP_CALL_STATUS_HELD)
-    btp.hfp_control(defs.HFP_AG_RETRIEVE, value=0)
+    btp.hfp_ag_retrieve(0)
     stack.hfp.wait_call_status(0, defs.BTP_HFP_CALL_STATUS_ACTIVE)
     return True
 
