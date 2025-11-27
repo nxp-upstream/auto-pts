@@ -14,6 +14,7 @@
 #
 
 from . import (
+               a2dp,
                aics,
                ascs,
                bap,
@@ -54,6 +55,7 @@ from . import (
 )
 
 __all__ = [
+    "a2dp",
     "aics",
     "ascs",
     "bap",

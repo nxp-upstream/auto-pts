@@ -123,4 +123,5 @@ ID  Name
  0x20 RFCOMM Service
  0x21 HFP_HF Service
  0x22 HFP_AG Service
+ 0x23 A2DP Service
  # GENERATOR append 1

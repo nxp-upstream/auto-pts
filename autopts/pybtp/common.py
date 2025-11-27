@@ -611,6 +611,10 @@ supported_svcs_cmds = {
         "service": 1 << defs.BTP_SERVICE_ID_HFP_AG,
         "supported_commands": defs.BTP_HFP_AG_CMD_READ_SUPPORTED_COMMANDS
     },
+    "A2DP": {
+        "service": 1 << defs.BTP_SERVICE_ID_A2DP,
+        "supported_commands": defs.BTP_A2DP_CMD_READ_SUPPORTED_COMMANDS
+    },
 # GENERATOR append 1
     "VENDOR": {
         "service": 1 << defs.BTP_SERVICE_ID_VENDOR,
@@ -697,6 +701,8 @@ reg_unreg_service = {
                 defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_HFP_HF),
     "hfp_ag_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
                 defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_HFP_AG),
+    "a2dp_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
+                 defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_A2DP),
 # GENERATOR append 2
     "vendor_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
                    defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_VENDOR),
