@@ -941,6 +941,15 @@ def test_cases(ptses):
                                  "TSPX_iut_Synchronous_Connection_method",
                                  "Without a call setup"))],
                   generic_wid_hdl=hfp_wid_hdl),
+        ZTestCase("HFP", "HFP/AG/ACC/BV-17-C",
+                  cmds=pre_conditions +
+                       [TestFunc(btp.hfp_ag_register),
+                        TestFunc(btp.gap_set_conn),
+                        TestFunc(btp.gap_set_gendiscov),
+                        TestFunc(lambda: pts.update_pixit_param("HFP",
+                                 "TSPX_iut_Synchronous_Connection_method",
+                                 "Without a call setup"))],
+                  generic_wid_hdl=hfp_wid_hdl),
     ]
 
     test_case_name_list = pts.get_test_case_list('HFP')

@@ -131,6 +131,11 @@ def hdl_wid_3(params: WIDParams):
     elif params.test_case_name in ['HFP/HF/ACC/BV-03-C', 'HFP/AG/VTA/BV-02-C']:
         btp.hfp_enable_audio()
         return True
+
+    if params.test_case_name in ['HFP/AG/ACC/BV-17-C']:
+        btp.hfp_control(defs.HFP_SEND_BCC_MSBC)
+        return True
+
     btp.hfp_control(defs.HFP_SEND_BCC)
     return True
 
