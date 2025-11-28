@@ -13,7 +13,7 @@
 # more details.
 #
 
-from autopts.ptsprojects.stack.common import wait_for_event, wait_for_queue_event
+from autopts.ptsprojects.stack.common import wait_for_event, wait_event_with_condition
 from autopts.pybtp import defs
 
 class HFP:
@@ -35,14 +35,14 @@ class HFP:
         self.event_queues[event_type].append(event_data)
 
     def wait_dummyevent_completed_ev(self, addr_type, addr, timeout, remove=True):
-        return wait_for_queue_event(
+        return wait_event_with_condition(
             self.event_queues[defs.BTP_HFP_EV_DUMMY_COMPLETED],
             lambda _addr_type, _addr, *_:
             (addr_type, addr) == (_addr_type, _addr),
             timeout, remove)
 
     def wait_sco_connected_ev(self, timeout, remove=True):
-        return wait_for_queue_event(
+        return wait_event_with_condition(
             self.event_queues[defs.BTP_HFP_EV_SCO_CONNECTED],
             lambda x: self.is_sco_connected,
             timeout, remove)
