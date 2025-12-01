@@ -79,6 +79,9 @@ def hdl_wid_1(params: WIDParams):
     stack = get_stack()
     stack.gap.set_passkey(None)
 
+    if params.test_case_name in ["HFP/HF/SLC/BV-01-C", "HFP/HF/SLC/BV-05-C"]:
+        return True
+
     if not stack.gap.is_connected():
         btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
         btp.gap_wait_for_connection()
@@ -101,6 +104,8 @@ def hdl_wid_1(params: WIDParams):
     elif params.test_case_name in ['HFP/HF/SLC/BV-11-C']:
         return True
     else:
+        if params.test_case_name in ['HFP/HF/WBS/BV-03-C']:
+            sleep(1)
         btp.hfp_enable_slc(None, 1, 0)
 
     if params.test_case_name in ['HFP/AG/RHH/BV-04-C', 'HFP/AG/RHH/BV-05-C', 'HFP/AG/RHH/BV-06-C', 'HFP/AG/RHH/BV-07-C',
@@ -195,7 +200,7 @@ def hdl_wid_8(params: WIDParams):
     if params.test_case_name.find('HFP/HF/') >= 0:
         btp.hfp_hf_answer_call()
     else:
-        btp.hfp_control(defs.HFP_AG_ANSWER_CALL)
+        btp.hfp_control(defs.HFP_ACCEPT_INCOMING_HELD_CALL)
     return True
 
 
@@ -203,6 +208,8 @@ def hdl_wid_9(params: WIDParams):
     """
     Click Ok, then answer the incoming call using the Implementation Under Test (IUT).
     """
+    if params.test_case_name in ['HFP/HF/CIT/BV-01-C']:
+        return True
     if params.test_case_name in ['HFP/HF/ICA/BV-01-C']:
         sleep(1)
     btp.hfp_hf_answer_call()
@@ -1091,6 +1098,11 @@ def hdl_wid_121(params: WIDParams):
     stack = get_stack()
     stack.gap.set_passkey(None)
 
+    if params.test_case_name in ['HFP/AG/SLC/BV-02-C', 'HFP/AG/SLC/BV-04-C']:
+        btp.hfp_ag_register()
+        btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+        return True
+
     if params.test_case_name in ['HFP/AG/RHH/BV-04-C', 'HFP/AG/RHH/BV-05-C',
                                  'HFP/AG/RHH/BV-06-C', 'HFP/AG/RHH/BV-07-C', 'HFP/AG/RHH/BV-08-C']:
         btp.hfp_set_ongoing_calls("1234567", 0, 6, 1, True)
@@ -1100,7 +1112,8 @@ def hdl_wid_121(params: WIDParams):
         btp.gap_wait_for_connection()
 
     btp.gap_pair(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
-    if params.test_case_name in ['HFP/HF/SLC/BV-11-C']:
+    if params.test_case_name in ["HFP/HF/SLC/BV-01-C", "HFP/HF/SLC/BV-05-C",
+                                 'HFP/HF/SLC/BV-11-C', "HFP/HF/ATH/BV-03-C"]:
         btp.hfp_enable_slc(None, 1, 0)
         return True
     btp.hfp_enable_slc(None, 1)
@@ -1517,7 +1530,7 @@ def hdl_wid_193(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition audio input is activated.
     """
-    btp.hfp_control(defs.HFP_AG_VRE_STATE, 2)  # the AG is ready to accept audio input
+    btp.hfp_control(defs.HFP_AG_VRE_STATE, 0)  # the AG is ready to accept audio input
     return True
 
 
@@ -1535,7 +1548,7 @@ def hdl_wid_195(_: WIDParams):
     """
     Perform the action in the IUT(AG) such that itsVoice Recognition processes VR audio input from HF.
     """
-    btp.hfp_control(defs.HFP_AG_VRE_STATE, 3)  # the AG is sending audio to the HF
+    btp.hfp_control(defs.HFP_AG_VRE_STATE, 2)  # the AG is sending audio to the HF
     return True
 
 
