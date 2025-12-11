@@ -44,6 +44,7 @@ from autopts.ptsprojects.stack.layers.tmap import TMAP
 from autopts.ptsprojects.stack.layers.vcp import VCP
 from autopts.ptsprojects.stack.layers.vcs import VCS
 from autopts.ptsprojects.stack.layers.vocs import VOCS
+from autopts.ptsprojects.stack.layers.rfcomm import RFCOMM
 
 # GENERATOR append 1
 from autopts.ptsprojects.stack.synch import Synch
@@ -88,6 +89,7 @@ class Stack:
         self.pbp = None
         self.sdp = None
         self.csis = None
+        self.rfcomm = None
         # GENERATOR append 2
         self.supported_svcs_cmds = common.supported_svcs_cmds
 
@@ -198,6 +200,9 @@ class Stack:
     def csis_init(self, size):
         self.csis = CSIS(size)
 
+    def rfcomm_init(self):
+        self.rfcomm = RFCOMM()
+
     # GENERATOR append 3
 
     def cleanup(self):
@@ -287,6 +292,9 @@ class Stack:
 
         if self.csis:
             self.csis_init(self.csis.set_size)
+
+        if self.rfcomm:
+            self.rfcomm_init()
 
         # GENERATOR append 4
 

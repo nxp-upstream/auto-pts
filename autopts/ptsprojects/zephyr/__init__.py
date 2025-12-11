@@ -48,6 +48,7 @@ from . import (
                vcp,
                vcs,
                vocs,
+               rfcomm
 # GENERATOR append 1
 )
 
@@ -86,6 +87,7 @@ __all__ = [
     "vcp",
     "vcs",
     "vocs",
+    "rfcomm"
 # GENERATOR append 2
 ]
 

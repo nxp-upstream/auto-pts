@@ -46,6 +46,7 @@ from .vocs import vocs_wid_hdl
 
 # GENERATOR append 1
 from .wid import generic_wid_hdl
+from .rfcomm import rfcomm_wid_hdl
 
 __all__ = [
     "aics_wid_hdl",
@@ -79,4 +80,8 @@ __all__ = [
     "vocs_wid_hdl",
 # GENERATOR append 2
     "generic_wid_hdl",
+    "rfcomm_wid_hdl"
 ]
+
+
+# GENERATOR append 1
