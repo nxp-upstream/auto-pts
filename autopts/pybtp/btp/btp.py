@@ -631,6 +631,10 @@ def core_reg_svc_avctp():
     core_reg_svc_univ("avctp_reg", "AVCTP")
 
 
+def core_reg_svc_spp():
+    core_reg_svc_univ("spp_reg", "SPP")
+
+
 # GENERATOR append 1
 
 
@@ -752,6 +756,7 @@ def event_handler(hdr, data):
         PBP_EV,
         RFCOMM_EV,
         SDP_EV,
+        SPP_EV,
         TBS_EV,
         TMAP_EV,
         VCP_EV,
@@ -799,6 +804,7 @@ def event_handler(hdr, data):
         defs.BTP_SERVICE_ID_AVDTP: (AVDTP_EV, stack.avdtp),
         defs.BTP_SERVICE_ID_AVRCP: (AVRCP_EV, stack.avrcp),
         defs.BTP_SERVICE_ID_AVCTP: (AVCTP_EV, stack.avctp),
+        defs.BTP_SERVICE_ID_SPP: (SPP_EV, stack.spp),
         # GENERATOR append 3
     }
 
