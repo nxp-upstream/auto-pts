@@ -635,6 +635,10 @@ supported_svcs_cmds = {
         "service": 1 << defs.BTP_SERVICE_ID_PBAP,
         "supported_commands": defs.BTP_PBAP_CMD_READ_SUPPORTED_COMMANDS
     },
+    "MAP": {
+        "service": 1 << defs.BTP_SERVICE_ID_MAP,
+        "supported_commands": defs.BTP_MAP_CMD_READ_SUPPORTED_COMMANDS
+    },
 # GENERATOR append 1
     "VENDOR": {
         "service": 1 << defs.BTP_SERVICE_ID_VENDOR,
@@ -733,6 +737,8 @@ reg_unreg_service = {
                  defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_SPP),
     "pbap_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
                 defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_PBAP),
+    "map_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
+                defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_MAP),
 # GENERATOR append 2
     "vendor_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
                    defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_VENDOR),

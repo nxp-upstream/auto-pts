@@ -18,6 +18,7 @@ from .hfp_ag import HFP_AG_EV
 from .hfp_hf import HFP_HF_EV
 from .ias import IAS_EV
 from .l2cap import L2CAP_EV
+from .map import MAP_EV
 from .mcp import MCP_EV
 from .mesh import MESH_EV
 from .micp import MICP_EV
@@ -54,6 +55,7 @@ __all__ = [
     "HAP_EV",
     "IAS_EV",
     "L2CAP_EV",
+    "MAP_EV",
     "MCP_EV",
     "MESH_EV",
     "MICP_EV",

@@ -37,6 +37,7 @@ from autopts.ptsprojects.stack.layers.hfp_ag import HFP_AG
 from autopts.ptsprojects.stack.layers.hfp_hf import HFP_HF
 from autopts.ptsprojects.stack.layers.ias import IAS
 from autopts.ptsprojects.stack.layers.l2cap import L2cap
+from autopts.ptsprojects.stack.layers.map import MAP
 from autopts.ptsprojects.stack.layers.mcp import MCP
 from autopts.ptsprojects.stack.layers.mesh import Mesh
 from autopts.ptsprojects.stack.layers.micp import MICP
@@ -106,6 +107,7 @@ class Stack:
         self.avctp = None
         self.spp = None
         self.pbap = None
+        self.map = None
         # GENERATOR append 2
         self.supported_svcs_cmds = common.supported_svcs_cmds
 
@@ -250,6 +252,9 @@ class Stack:
     def pbap_init(self):
         self.pbap = PBAP()
 
+    def map_init(self):
+        self.map = MAP()
+
     # GENERATOR append 3
 
     def cleanup(self):
@@ -366,6 +371,9 @@ class Stack:
 
         if self.pbap:
             self.pbap_init()
+
+        if self.map:
+            self.map_init()
 
         # GENERATOR append 4
 
