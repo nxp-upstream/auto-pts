@@ -24,6 +24,8 @@ from .csis import csis_wid_hdl
 from .gmcs import gmcs_wid_hdl
 from .gtbs import gtbs_wid_hdl
 from .has import has_wid_hdl
+from .hid_device import hid_device_wid_hdl
+from .hid_host import hid_host_wid_hdl
 from .hfp_ag import hfp_ag_wid_hdl
 from .hfp_hf import hfp_hf_wid_hdl
 from .ias import ias_wid_hdl
@@ -93,6 +95,8 @@ __all__ = [
     "rfcomm_wid_hdl",
     "spp_wid_hdl",
     "pbap_wid_hdl",
+    "hid_device_wid_hdl",
+    "hid_host_wid_hdl",
 # GENERATOR append 2
     "generic_wid_hdl",
 ]

@@ -606,6 +606,11 @@ def core_reg_svc_sdp():
 def core_reg_svc_rfcomm():
     core_reg_svc_univ("rfcomm_reg", "RFCOMM")
 
+def core_reg_svc_hid_device():
+    core_reg_svc_univ("hid_device_reg", "HID_DEVICE")
+
+def core_reg_svc_hid_host():
+    core_reg_svc_univ("hid_host_reg", "HID_HOST")
 
 def core_reg_svc_hfp_hf():
     core_reg_svc_univ("hfp_hf_reg", "HFP_HF")
@@ -751,6 +756,8 @@ def event_handler(hdr, data):
         GATTC_EV,
         GMCS_EV,
         HAP_EV,
+        HID_DEVICE_EV,
+        HID_HOST_EV,
         HFP_AG_EV,
         HFP_HF_EV,
         IAS_EV,
@@ -808,6 +815,8 @@ def event_handler(hdr, data):
         defs.BTP_SERVICE_ID_PBP: (PBP_EV, stack.pbp),
         defs.BTP_SERVICE_ID_SDP: (SDP_EV, stack.sdp),
         defs.BTP_SERVICE_ID_RFCOMM: (RFCOMM_EV, stack.rfcomm),
+        defs.BTP_SERVICE_ID_HID_DEVICE: (HID_DEVICE_EV, stack.hid_device),
+        defs.BTP_SERVICE_ID_HID_HOST: (HID_HOST_EV, stack.hid_host),
         defs.BTP_SERVICE_ID_HFP_AG: (HFP_AG_EV, stack.hfp_ag),
         defs.BTP_SERVICE_ID_HFP_HF: (HFP_HF_EV, stack.hfp_hf),
         defs.BTP_SERVICE_ID_A2DP: (A2DP_EV, stack.a2dp),

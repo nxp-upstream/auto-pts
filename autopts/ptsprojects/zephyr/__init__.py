@@ -33,6 +33,7 @@ from . import (
                gatt,
                hap,
                has,
+               hid11,
                hfp,
                ias,
                l2cap,
@@ -102,6 +103,7 @@ __all__ = [
     "vcs",
     "vocs",
     "rfcomm",
+    "hid11",
     "spp",
     "pbap",
 # GENERATOR append 2

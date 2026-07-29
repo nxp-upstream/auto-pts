@@ -35,6 +35,8 @@ from autopts.ptsprojects.stack.layers.gtbs import GTBS
 from autopts.ptsprojects.stack.layers.hap import HAP
 from autopts.ptsprojects.stack.layers.hfp_ag import HFP_AG
 from autopts.ptsprojects.stack.layers.hfp_hf import HFP_HF
+from autopts.ptsprojects.stack.layers.hid_device import HIDDevice
+from autopts.ptsprojects.stack.layers.hid_host import HIDHost
 from autopts.ptsprojects.stack.layers.ias import IAS
 from autopts.ptsprojects.stack.layers.l2cap import L2cap
 from autopts.ptsprojects.stack.layers.map import MAP
@@ -99,6 +101,8 @@ class Stack:
         self.sdp = None
         self.csis = None
         self.rfcomm = None
+        self.hid_device = None
+        self.hid_host = None
         self.hfp_hf = None
         self.hfp_ag = None
         self.a2dp = None
@@ -233,6 +237,11 @@ class Stack:
 
     def hfp_ag_init(self):
         self.hfp_ag = HFP_AG()
+    def hid_device_init(self):
+        self.hid_device = HIDDevice()
+
+    def hid_host_init(self):
+        self.hid_host = HIDHost()
 
     def a2dp_init(self):
         self.a2dp = A2DP()
@@ -347,6 +356,12 @@ class Stack:
 
         if self.rfcomm:
             self.rfcomm_init()
+
+        if self.hid_device:
+            self.hid_device_init()
+
+        if self.hid_host:
+            self.hid_host_init()
 
         if self.hfp_hf:
             self.hfp_hf_init()
