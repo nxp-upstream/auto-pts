@@ -29,7 +29,12 @@ from . import (
                gatt,
                hap,
                has,
+               hid,
+               hid_host,
+               hid11,
+               hid11_host,
                ias,
+
                l2cap,
                mbtm,
                mcp,
@@ -49,7 +54,7 @@ from . import (
                vcp,
                vcs,
                vocs,
-# GENERATOR append 1
+               # GENERATOR append 1
 )
 
 __all__ = [
@@ -88,7 +93,12 @@ __all__ = [
     "vcs",
     "vocs",
     "rfcomm",
+    "hid",
+    "hid_host",
+    "hid11",
+    "hid11_host",
 # GENERATOR append 2
+
 ]
 
 # Constants
