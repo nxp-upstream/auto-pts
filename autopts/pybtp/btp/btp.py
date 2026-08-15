@@ -652,6 +652,10 @@ def core_reg_svc_ftp():
     core_reg_svc_univ("ftp_reg", "FTP")
 
 
+def core_reg_svc_opp():
+    core_reg_svc_univ("opp_reg", "OPP")
+
+
 # GENERATOR append 1
 
 
@@ -772,6 +776,7 @@ def event_handler(hdr, data):
         MESH_EV,
         MICP_EV,
         MICS_EV,
+        OPP_EV,
         OTS_EV,
         PACS_EV,
         PBAP_EV,
@@ -832,6 +837,7 @@ def event_handler(hdr, data):
         defs.BTP_SERVICE_ID_PBAP: (PBAP_EV, stack.pbap),
         defs.BTP_SERVICE_ID_MAP: (MAP_EV, stack.map),
         defs.BTP_SERVICE_ID_FTP: (FTP_EV, stack.ftp),
+        defs.BTP_SERVICE_ID_OPP: (OPP_EV, stack.opp),
         # GENERATOR append 3
     }
 
