@@ -48,6 +48,7 @@ from .ots import *  # noqa: F403 # used in many files : TODO import directly in 
 from .pacs import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from .pbap import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from .pbp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
+from .opp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from .rfcomm import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from .sdp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from .spp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
