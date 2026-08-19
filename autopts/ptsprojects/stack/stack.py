@@ -27,6 +27,7 @@ from autopts.ptsprojects.stack.layers.ccp import CCP
 from autopts.ptsprojects.stack.layers.core import CORE
 from autopts.ptsprojects.stack.layers.csip import CSIP
 from autopts.ptsprojects.stack.layers.csis import CSIS
+from autopts.ptsprojects.stack.layers.ftp import FTP
 from autopts.ptsprojects.stack.layers.gap import Gap
 from autopts.ptsprojects.stack.layers.gatt import Gatt
 from autopts.ptsprojects.stack.layers.gattcl import GattCl
@@ -112,6 +113,7 @@ class Stack:
         self.spp = None
         self.pbap = None
         self.map = None
+        self.ftp = None
         # GENERATOR append 2
         self.supported_svcs_cmds = common.supported_svcs_cmds
 
@@ -264,6 +266,9 @@ class Stack:
     def map_init(self):
         self.map = MAP()
 
+    def ftp_init(self):
+        self.ftp = FTP()
+
     # GENERATOR append 3
 
     def cleanup(self):
@@ -389,6 +394,9 @@ class Stack:
 
         if self.map:
             self.map_init()
+
+        if self.ftp:
+            self.ftp_init()
 
         # GENERATOR append 4
 
