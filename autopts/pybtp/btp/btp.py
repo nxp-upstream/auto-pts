@@ -619,6 +619,10 @@ def core_reg_svc_a2dp():
     core_reg_svc_univ("a2dp_reg", "A2DP")
 
 
+def core_reg_svc_avdtp():
+    core_reg_svc_univ("avdtp_reg", "AVDTP")
+
+
 # GENERATOR append 1
 
 
@@ -714,6 +718,7 @@ def event_handler(hdr, data):
         A2DP_EV,
         AICS_EV,
         ASCS_EV,
+        AVDTP_EV,
         BAP_EV,
         CAP_EV,
         CCP_EV,
@@ -781,6 +786,7 @@ def event_handler(hdr, data):
         defs.BTP_SERVICE_ID_HFP_AG: (HFP_AG_EV, stack.hfp_ag),
         defs.BTP_SERVICE_ID_HFP_HF: (HFP_HF_EV, stack.hfp_hf),
         defs.BTP_SERVICE_ID_A2DP: (A2DP_EV, stack.a2dp),
+        defs.BTP_SERVICE_ID_AVDTP: (AVDTP_EV, stack.avdtp),
         # GENERATOR append 3
     }
 
