@@ -45,6 +45,7 @@ from . import (
                mmdl,
                ots,
                pacs,
+               pbap,
                pbp,
                rfcomm,
                sdp,
@@ -100,6 +101,7 @@ __all__ = [
     "vocs",
     "rfcomm",
     "spp",
+    "pbap",
 # GENERATOR append 2
 ]
 

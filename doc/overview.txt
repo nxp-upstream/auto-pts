@@ -128,4 +128,5 @@ ID  Name
  0x25 AVRCP Service
  0x26 AVCTP Service
  0x27 SPP Service
+ 0x18 PBAP Service
  # GENERATOR append 1
