@@ -342,6 +342,11 @@ class BIPImageDatabase:
         # instead of the default Success (0xa0). Only enabled for the specific
         # test cases that require this special behaviour (e.g. BIP/RDR/FFC/BV-11-C).
         self.put_image_final_partial_content = False
+        # Most recently pushed image (was the module-global _last_put_image).
+        self.last_put_image = None
+        # Handles returned by the last GetImagesList (was the module-global
+        # `handles`). Consumed by RemoteDisplay SELECT_IMAGE test cases.
+        self.last_image_list = None
 
     # === GetCapabilities (4.5.1) ===
     def get_caps_rsp(self, headers):
@@ -882,9 +887,42 @@ class BIPImageDatabase:
 
     # === StartPrint (4.5.12) ===
     def start_print_rsp(self, final, headers):
+        # The printer-control object (a DPOF 1.1 text description) arrives in
+        # the Body/End-Body of the StartPrint PUT and can span several packets.
+        # Accumulate it and, once complete, extract the IMG SRC file names so a
+        # later GetPartialImage can reference them.
+        body = headers.get(OBEXHdr.BODY) or headers.get(OBEXHdr.END_BODY)
+        if body:
+            if not getattr(self, '_print_body_in_progress', False):
+                self._print_body = b''
+                self._print_body_in_progress = True
+            self._print_body += body
+
+        if final:
+            self._print_body_in_progress = False
+            self._extract_print_img_src()
+
         if final:
             return OBEXRspCode.SUCCESS, b''
         return OBEXRspCode.CONTINUE, b''
+
+    def _extract_print_img_src(self):
+        body = getattr(self, '_print_body', b'')
+        if not body:
+            return
+        text = body.decode('utf-8', errors='replace')
+        self.print_img_srcs = re.findall(
+            r'<IMG\s+SRC\s*=\s*"([^"]+)"', text, re.IGNORECASE)
+
+    def get_print_img_src(self):
+        srcs = getattr(self, 'print_img_srcs', None)
+        return srcs[0] if srcs else None
+
+    def set_last_image_list(self, handles):
+        self.last_image_list = handles
+
+    def get_last_image_list(self):
+        return self.last_image_list
 
     # === StartArchive (4.5.14) ===
     def start_archive_rsp(self, final, headers):
@@ -968,15 +1006,15 @@ class OBEXSession:
 
     def __init__(self, role=BIPObexRole.PRIMARY, connection=None):
         self.role = role
-        # Back-reference to the owning transport-level BIPConnection. Whether
-        # SRM may be used at all is a transport property (only L2CAP/GOEP 2.0
-        # allows it), so is_srm_allowed() below reads it back through this
-        # reference. The session still owns the negotiated SRM state itself
-        # (srm_flags / srmp_wait_count), keeping all SRM handling on the
-        # session while leaving the transport as the single source of truth
-        # for transport_type.
+        # Back-reference to the owning transport-level BIPConnection (used only
+        # for lifecycle bookkeeping). The transport type is owned per-session:
+        # a primary (Image Push) and a secondary (Referenced/Archived Objects)
+        # OBEX session share one BIPConnection but may ride different transports
+        # (L2CAP vs RFCOMM), so is_srm_allowed() reads the session's own
+        # transport_type rather than a single shared value.
         self.connection = connection
         self.obex_connected = False
+        self.transport_type = None
 
         self.conn_id = None
         self.conn_info = {}
@@ -985,6 +1023,11 @@ class OBEXSession:
         self.srm_flags = 0
         self.srmp_wait_count = 0
         self._pending_body = {}
+        # Per-operation transfer state (was module-level globals). Kept on the
+        # session so an aborted or disconnected transfer cannot leak its
+        # continuation/offset state into another connection or test case.
+        self.pending_put = None
+        self.chunk_offsets = {}
         # Guards data_rx and wakes any thread waiting in rx_data_get /
         # wait_for_operation_complete as soon as a new entry is enqueued.
         # This removes the pure busy-poll race where an entry was enqueued
@@ -998,12 +1041,10 @@ class OBEXSession:
         return self.is_srm_enabled() and not (self.srm_flags & 0x0C)
 
     def is_srm_allowed(self):
-        # Whether SRM may be used at all is a transport property (only
-        # L2CAP/GOEP 2.0 allows it). Delegate to the owning connection, which
-        # is the single source of truth for transport_type. Keeping this on the
-        # session unifies all SRM handling (flags, waits, and the allowed check)
-        # on the class that owns the SRM state.
-        return bool(self.connection) and self.connection.is_srm_allowed()
+        # SRM is a GOEP 2.0 / L2CAP-only feature. Whether it may be used at all
+        # depends on the transport this session rides, which is owned per-session
+        # (primary and secondary may use different transports).
+        return self.transport_type == types.BIPTransportType.L2CAP_CONN
 
     def reset_srm(self):
         self.srm_flags = 0
@@ -1077,24 +1118,10 @@ class BIPConnection:
 
     def __init__(self, address):
         self.address = address
-        self.transport_type = None
         self.sessions = {}
         # Eagerly create the primary session. All per-session state is
         # accessed explicitly through get_session()/get_or_add_session(role).
         self.add_session(BIPObexRole.PRIMARY)
-
-    # ---- transport-level ----
-    def set_transport_type(self, transport_type):
-        self.transport_type = transport_type
-
-    def clear_transport_type(self):
-        self.transport_type = None
-
-    def is_transport_connected(self):
-        return self.transport_type is not None
-
-    def is_srm_allowed(self):
-        return self.transport_type == types.BIPTransportType.L2CAP_CONN
 
     # ---- session lifecycle ----
     def add_session(self, role):
@@ -1174,7 +1201,8 @@ class BIP:
     # ---- Transport connection management ----
 
     def add_bip_connection(self, address,
-                           transport_type: types.BIPTransportType):
+                           transport_type: types.BIPTransportType,
+                           role=BIPObexRole.PRIMARY):
         # A single BR/EDR link can raise more than one transport-connected
         # event for the same address: e.g. the primary L2CAP/RFCOMM transport
         # first, then a second transport for the secondary (Referenced/Archived
@@ -1183,24 +1211,35 @@ class BIP:
         # its per-session state, most importantly the primary OBEX conn_id that
         # was assigned on CONNECT). Rebuilding the BIPConnection here would wipe
         # that conn_id and cause later requests such as GetCapabilities to omit
-        # the required Connection-ID header.
+        # the required Connection-ID header. The transport type is recorded on
+        # the role's own session so a primary L2CAP and a secondary RFCOMM
+        # (or vice versa) no longer overwrite each other.
         conn = self.bip_connections.get(address)
         if conn is None:
             conn = BIPConnection(address)
             self.bip_connections[address] = conn
-        conn.set_transport_type(transport_type)
-        conn.get_or_add_session(BIPObexRole.PRIMARY).srmp_wait_count = \
-            self.default_srmp_wait_count
+        session = conn.get_or_add_session(role)
+        session.transport_type = transport_type
+        session.srmp_wait_count = self.default_srmp_wait_count
 
     def get_bip_connection(self, address):
         return self.bip_connections.get(address)
 
     def remove_bip_connection(self, address,
-                              transport_type: types.BIPTransportType):
-        if address in self.bip_connections:
-            conn = self.get_bip_connection(address)
-            if conn and conn.transport_type == transport_type:
-                del self.bip_connections[address]
+                              transport_type: types.BIPTransportType,
+                              role=BIPObexRole.PRIMARY):
+        conn = self.get_bip_connection(address)
+        if conn is None:
+            return
+        session = conn.get_session(role)
+        if session and session.transport_type == transport_type:
+            session.transport_type = None
+        # Only drop the whole connection once no session still has an active
+        # transport. This lets a secondary disconnect clean up its own transport
+        # without tearing down a still-active primary (and vice versa).
+        if not any(s.transport_type is not None
+                   for s in conn.sessions.values()):
+            del self.bip_connections[address]
 
     def wait_for_bip_connection(self, address, timeout=30):
         wait_for_event(

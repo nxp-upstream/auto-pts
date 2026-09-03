@@ -71,7 +71,7 @@ def set_pixits(ptses):
     pts.set_pixit("CAP", "TSPX_METADATA_SELECTION", "USE_IXIT_VALUE_FOR_METADATA")
     pts.set_pixit("CAP", "TSPX_METADATA_SINK", "03020200")
     pts.set_pixit("CAP", "TSPX_METADATA_SOURCE", "03020200")
-    pts.set_pixit("CAP", "TSPX_Broadcast_Code", "0102680553F1415AA265BBAFC6EA03B8")
+#     pts.set_pixit("CAP", "TSPX_Broadcast_Code", "0102680553F1415AA265BBAFC6EA03B8")
     pts.set_pixit("CAP", "TSPX_Sync_Timeout", "20000")
     pts.set_pixit("CAP", "TSPX_sirk", "838E680553F1415AA265BBAFC6EA03B8")
     pts.set_pixit("CAP", "TSPX_STREAMING_DATA_CONFIRMATION_METHOD", "By Playing")

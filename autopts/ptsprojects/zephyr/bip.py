@@ -28,10 +28,23 @@ TSPX_supported_pixels = "1280*1024"
 def set_pixits(ptses):
     pts = ptses[0]
 
+    pts.set_pixit("BIP", "TSPX_security_enabled", "FALSE")
+    pts.set_pixit("BIP", "TSPX_bd_addr_iut", "DEADBEEFDEAD")
     pts.set_pixit("BIP", "TSPX_time_guard", "180000")
+    pts.set_pixit("BIP", "TSPX_sender_class_of_device", "100104")
+    pts.set_pixit("BIP", "TSPX_receiver_class_of_device", "100104")
+    pts.set_pixit("BIP", "TSPX_auth_password", "0000")
+    pts.set_pixit("BIP", "TSPX_l2cap_psm", "1003")
+    pts.set_pixit("BIP", "TSPX_rfcomm_channel", "8")
+    pts.set_pixit("BIP", "TSPX_delete_link_key", "FALSE")
+    pts.set_pixit("BIP", "TSPX_pin_code", "0000")
     pts.set_pixit("BIP", "TSPX_use_implicit_send", "False")
     pts.set_pixit("BIP", "TSPX_supported_encodings", TSPX_supported_encodings)
     pts.set_pixit("BIP", "TSPX_supported_pixels", TSPX_supported_pixels)
+    pts.set_pixit("BIP", "TSPX_PutLinkedAttachment_Formats", "text/plain")
+    pts.set_pixit("BIP", "TSPX_use_implicit_send", "FALSE")
+    pts.set_pixit("BIP", "TSPX_secure_simple_pairing_pass_key_confirmation", "FALSE")
+
 
 
 def test_cases(ptses):
@@ -49,7 +62,7 @@ def test_cases(ptses):
     pre_conditions = [
         TestFunc(btp.core_reg_svc_gap),
         TestFunc(stack.gap_init, iut_device_name),
-        TestFunc(btp.gap_read_ctrl_info),
+        TestFunc(btp.gap_read_controller_info),
         TestFunc(lambda: pts.update_pixit_param(
                  "BIP", "TSPX_bd_addr_iut",
                  stack.gap.iut_addr_get_str())),
@@ -94,7 +107,8 @@ def test_cases(ptses):
         ("BIP/SR/GOEP/SRM/BI-02-C", PUSH, None),
         ("BIP/SR/GOEP/ROB/BV-01-C", PUSH, None),
         ("BIP/IPSR/PSH/BV-02-C", PUSH, None),
-        ("BIP/IPSR/PSH/BI-01-C", PUSH, None),
+        ("BIP/IPSR/PSH/BV-02-C", PUSH, None),
+        ("BIP/IPSR/MFS/BV-06-C", PUSH, None),
         ("BIP/RDR/MFS/BV-26-C", DISPLAY, None),
         ("BIP/RCR/MFS/BV-23-C", CAMERA, None),
         ("BIP/AIPR/MFS/BV-18-C", PRINTING, None),
@@ -129,6 +143,7 @@ def test_cases(ptses):
         ("BIP/IPLR/FFC/BV-06-C", PULL, None),
         ("BIP/AAR/FFC/BV-05-C", ARCHIVE, None),
         ("BIP/RDR/FFC/BV-08-C", DISPLAY, None),
+        ("BIP/RDR/FFC/BV-06-C", DISPLAY, None),
         ("BIP/RDR/FFC/BV-04-C", DISPLAY, None),
         ("BIP/IPLR/FFC/BV-04-C", PULL, None),
         ("BIP/RDR/FFC/BV-02-C", DISPLAY, None),

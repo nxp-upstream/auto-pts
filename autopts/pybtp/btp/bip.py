@@ -17,6 +17,7 @@ import logging
 import queue
 import struct
 import threading
+import xml.etree.ElementTree as ET
 
 from autopts.ptsprojects.stack import get_stack
 from autopts.ptsprojects.stack.layers.bip import BIPObexRole, BIPSrmFlag
@@ -43,12 +44,6 @@ log = logging.debug
 BIP_HDR_IMG_HANDLE = OBEXHdr.IMG_HANDLE
 BIP_HDR_IMG_DESC = OBEXHdr.IMG_DESCRIPTION
 
-
-BIP_APP_PARAM_RETURNED_HANDLES = 0x01
-BIP_APP_PARAM_LIST_START_OFFSET = 0x02
-BIP_APP_PARAM_LATEST_CAPTURED_IMAGES = 0x03
-BIP_APP_PARAM_TOTAL_FILE_SIZE = 0x06
-BIP_APP_PARAM_END_FLAG = 0x07
 
 SRM_ENABLE = 0x01
 SRMP_WAIT = 0x01
@@ -447,6 +442,12 @@ BIP = {
     'second_delete_image': (defs.BTP_SERVICE_ID_BIP,
                             defs.BTP_BIP_CMD_SECOND_DELETE_IMAGE,
                             CONTROLLER_INDEX),
+    'second_disconnect_l2cap': (defs.BTP_SERVICE_ID_BIP,
+                                defs.BTP_BIP_CMD_SECOND_DISCONNECT_L2CAP,
+                                CONTROLLER_INDEX),
+    'second_disconnect_rfcomm': (defs.BTP_SERVICE_ID_BIP,
+                                 defs.BTP_BIP_CMD_SECOND_DISCONNECT_RFCOMM,
+                                 CONTROLLER_INDEX),
 }
 
 
@@ -584,15 +585,6 @@ def bip_obex_abort(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
     data_ba = _addr_bytes(bd_addr, bd_addr_type)
 
     iutctl.btp_socket.send_wait_rsp(*BIP['obex_abort'], data=data_ba)
-
-
-connect_id = 0x00
-
-
-def bip_connection_id():
-    global connect_id
-    connect_id += 1
-    return connect_id
 
 
 def bip_connect_rsp(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE,
@@ -762,6 +754,42 @@ def bip_second_connect_rfcomm(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYP
     iutctl.btp_socket.send_wait_rsp(*BIP['second_connect_rfcomm'], data=data_ba)
 
 
+def bip_second_disconnect_l2cap(bd_addr=None,
+                                bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
+    """Tear down the secondary (Archived/Referenced Objects) L2CAP transport.
+
+    Counterpart of bip_second_connect_l2cap; acts on the IUT's secondary
+    bt_bip instance (inst->second_bip).
+    """
+    logging.debug("%s %r %r", bip_second_disconnect_l2cap.__name__, bd_addr,
+                  bd_addr_type)
+
+    iutctl = get_iut()
+
+    data_ba = _addr_bytes(bd_addr, bd_addr_type)
+
+    iutctl.btp_socket.send_wait_rsp(*BIP['second_disconnect_l2cap'],
+                                    data=data_ba)
+
+
+def bip_second_disconnect_rfcomm(bd_addr=None,
+                                 bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
+    """Tear down the secondary (Archived/Referenced Objects) RFCOMM transport.
+
+    Counterpart of bip_second_connect_rfcomm; acts on the IUT's secondary
+    bt_bip instance (inst->second_bip).
+    """
+    logging.debug("%s %r %r", bip_second_disconnect_rfcomm.__name__, bd_addr,
+                  bd_addr_type)
+
+    iutctl = get_iut()
+
+    data_ba = _addr_bytes(bd_addr, bd_addr_type)
+
+    iutctl.btp_socket.send_wait_rsp(*BIP['second_disconnect_rfcomm'],
+                                    data=data_ba)
+
+
 def bip_get_connection(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
 
     iutctl = get_iut()
@@ -867,7 +895,8 @@ BIP_CMD_TYPE_MAP = {
 
 def _bip_operation_cmd(cmd_key, bd_addr=None,
                        bd_addr_type=defs.BTP_BR_ADDRESS_TYPE,
-                       final=1, data=b'', continuation=False):
+                       final=1, data=b'', continuation=False,
+                       role=BIPObexRole.PRIMARY):
     logging.debug("%s %r %r %r %r cont=%r", cmd_key, bd_addr, bd_addr_type,
                   final, len(data), continuation)
 
@@ -875,10 +904,10 @@ def _bip_operation_cmd(cmd_key, bd_addr=None,
 
     bd_addr_resolved = pts_addr_get(bd_addr)
     conn = get_stack().bip.get_bip_connection(bd_addr_resolved)
-    # Operate on the PRIMARY OBEX session directly so all SRM handling stays
-    # on the class that owns the SRM state (mirrors _bip_second_operation_cmd,
-    # which uses the SECONDARY session).
-    sess = conn.get_or_add_session(BIPObexRole.PRIMARY) if conn else None
+    # Operate on the requested OBEX session directly so all SRM handling stays
+    # on the class that owns the SRM state (PRIMARY for imaging, SECONDARY for
+    # Referenced/Archived Objects).
+    sess = conn.get_or_add_session(role) if conn else None
 
     prefix = bytearray()
 
@@ -932,51 +961,11 @@ def _bip_operation_rsp_cmd(cmd_key, bd_addr=None,
 def _bip_second_operation_cmd(cmd_key, bd_addr=None,
                               bd_addr_type=defs.BTP_BR_ADDRESS_TYPE,
                               final=1, data=b'', continuation=False):
-    # Secondary (Archived/Referenced Objects) client request. Mirrors
-    # _bip_operation_cmd but resolves the OBEX CONN_ID and SRM state from the
-    # SECONDARY OBEX session so the request is isolated from the primary
-    # imaging connection.
-    logging.debug("%s %r %r %r %r cont=%r", cmd_key, bd_addr, bd_addr_type,
-                  final, len(data), continuation)
-
-    iutctl = get_iut()
-
-    bd_addr_resolved = pts_addr_get(bd_addr)
-    conn = get_stack().bip.get_bip_connection(bd_addr_resolved)
-    sess = conn.get_or_add_session(BIPObexRole.SECONDARY) if conn else None
-
-    prefix = bytearray()
-
-    if not continuation:
-        if sess and sess.conn_id is not None:
-            bip_add_headers(prefix, {OBEXHdr.CONN_ID: sess.conn_id})
-
-        type_val = BIP_CMD_TYPE_MAP.get(cmd_key)
-        if type_val is not None:
-            bip_add_headers(prefix, {OBEXHdr.TYPE: type_val})
-
-        if sess and sess.is_srm_allowed() and \
-           not (sess.srm_flags & BIPSrmFlag.SRM_LOCAL):
-
-            sess.srm_flags |= BIPSrmFlag.SRM_LOCAL
-            prefix.append(OBEXHdr.SRM)
-            prefix.append(SRM_ENABLE)
-            if sess.srmp_wait_count > 0:
-                sess.srm_flags |= BIPSrmFlag.SRMP_LOCAL
-                prefix.append(OBEXHdr.SRMP)
-                prefix.append(SRMP_WAIT)
-                sess.srmp_wait_count -= 1
-            else:
-                sess.srm_flags &= ~BIPSrmFlag.SRMP_LOCAL
-
-    payload = bytes(prefix) + bytes(data)
-
-    data_ba = _addr_bytes(bd_addr, bd_addr_type)
-    data_ba.extend(struct.pack('B', final))
-    data_ba.extend(struct.pack('<H', len(payload)))
-    data_ba.extend(payload)
-
-    iutctl.btp_socket.send_wait_rsp(*BIP[cmd_key], data=data_ba)
+    # Secondary (Archived/Referenced Objects) client request: same as
+    # _bip_operation_cmd but resolves CONN_ID / SRM state from the SECONDARY
+    # OBEX session so the request stays isolated from the primary connection.
+    return _bip_operation_cmd(cmd_key, bd_addr, bd_addr_type, final, data,
+                              continuation, role=BIPObexRole.SECONDARY)
 
 
 def bip_second_get_capabilities(bd_addr=None,
@@ -1075,17 +1064,6 @@ def bip_get_image_list(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE,
     """
     _bip_operation_cmd('get_image_list', bd_addr, bd_addr_type, final,
                        bytes(data))
-
-
-def bip_get_image_list_req(bd_addr=None,
-                           bd_addr_type=defs.BTP_BR_ADDRESS_TYPE,
-                           final=1, data=b''):
-    """Send a GetImagesList request.
-
-    The caller is responsible for constructing the App-Parameters TLV and
-    the Img-Description header and passing them in *data*.
-    """
-    _bip_operation_cmd('get_image_list', bd_addr, bd_addr_type, final, data)
 
 
 def bip_get_image_list_rsp(bd_addr=None,
@@ -1195,10 +1173,54 @@ def bip_wait_for_operation_complete(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRE
     return stack.bip.wait_for_operation_complete(bd_addr, event, rsp_code=rsp_code, timeout=timeout, role=role)
 
 
+def _bip_extract_body_xml(body):
+    """Extract the concatenated XML document carried by an OBEX response body.
+
+    BIP client responses wrap the requested XML document inside OBEX
+    Body (0x48) / End-Body (0x49) headers. When the document exceeds one OBEX
+    packet it is chunked, so the (already reassembled) body holds several Body
+    headers followed by one End-Body, interleaved with other headers
+    (App-Parameters, Img-Description, SRM, ...). Skip the non-body headers and
+    join every body payload in order; ElementTree needs a single well-formed
+    XML document.
+    """
+    buf = bytes(body)
+    parts = []
+    index = 0
+    buf_len = len(buf)
+
+    while index < buf_len:
+        header_id = buf[index]
+        index += 1
+        enc = header_id & 0xC0
+
+        if enc == 0x80:  # 1-byte value (e.g. SRM, SRMP)
+            index += 1
+            continue
+        if enc == 0xC0:  # 4-byte value (e.g. CONN_ID, LEN)
+            index += 4
+            continue
+        if index + 2 > buf_len:
+            break
+        header_total_len = struct.unpack('>H', buf[index:index + 2])[0]
+        if header_total_len < 3:
+            break
+        data_len = header_total_len - 3
+        index += 2
+        if index + data_len > buf_len:
+            break
+        raw = buf[index:index + data_len]
+        index += data_len
+        if header_id in (OBEXHdr.BODY, OBEXHdr.END_BODY):
+            parts.append(raw)
+
+    if not parts:
+        return None
+    return b''.join(parts).decode('utf-8', errors='replace')
+
+
 def bip_get_caps_format(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
     """Send GetCapabilities and parse the response to extract encoding/pixel."""
-    import re
-
     result = bip_wait_for_operation_complete(
         pts_addr_get(bd_addr),
         event=defs.BTP_BIP_EV_CLIENT_GET_CAPS_RSP,
@@ -1212,34 +1234,25 @@ def bip_get_caps_format(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
     if rsp_code != OBEXRspCode.SUCCESS or not body:
         return None, None
 
-    caps_xml = body.decode('utf-8', errors='replace')
+    caps_xml = _bip_extract_body_xml(body)
     logging.debug("GetCapabilities XML: %s", caps_xml)
+    if caps_xml is None:
+        return None, None
 
-    # Per BIP spec DTD, both <preferred-format> and <image-formats> are EMPTY
-    # elements with attributes inline, e.g.:
-    #   <preferred-format encoding="JPEG" pixel="1280*960" transformation="..."/>
-    #   <image-formats encoding="JPEG" pixel="640*480"/>
-    # Priority: preferred-format first, then first image-formats entry.
+    # Per BIP spec DTD 4.4.6.3, preferred-format and image-formats are EMPTY
+    # elements with inline attributes. Priority: preferred-format first, then
+    # the first image-formats entry. encoding is REQUIRED, pixel is IMPLIED
+    # (optional) in both, so pixel may legitimately be absent.
+    root = ET.fromstring(caps_xml)
 
-    m = re.search(
-        r'<preferred-format\b[^>]*\bencoding="([^"]+)"[^>]*\bpixel="([^"]+)"',
-        caps_xml)
-    if m:
-        return m.group(1), m.group(2)
+    elem = root.find('preferred-format')
+    if elem is None:
+        elem = root.find('image-formats')
 
-    m = re.search(
-        r'<image-formats\b[^>]*\bencoding="([^"]+)"[^>]*\bpixel="([^"]+)"',
-        caps_xml)
-    if m:
-        return m.group(1), m.group(2)
+    if elem is None:
+        return None, None
 
-    # last resort: any encoding/pixel attribute in the document
-    m = re.search(r'\bencoding="([^"]+)"', caps_xml)
-    p = re.search(r'\bpixel="([^"]+)"', caps_xml)
-    if m and p:
-        return m.group(1), p.group(1)
-
-    return None, None
+    return elem.get('encoding'), elem.get('pixel')
 
 
 def bip_get_image_list_format(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE, event=defs.BTP_BIP_EV_CLIENT_GET_IMAGE_LIST_RSP):
@@ -1250,7 +1263,6 @@ def bip_get_image_list_format(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYP
 
     Returns a list of handle strings (may be empty), or None on failure.
     """
-    import re
     result = bip_wait_for_operation_complete(
         pts_addr_get(bd_addr),
         event=defs.BTP_BIP_EV_CLIENT_GET_IMAGE_LIST_RSP,
@@ -1264,14 +1276,16 @@ def bip_get_image_list_format(bd_addr=None, bd_addr_type=defs.BTP_BR_ADDRESS_TYP
     if rsp_code != OBEXRspCode.SUCCESS or not body:
         return None
 
-    list_xml = body.decode('utf-8', errors='replace')
+    list_xml = _bip_extract_body_xml(body)
     logging.debug("GetImagesList XML: %s", list_xml)
+    if list_xml is None:
+        return None
 
-    # The response body is an image-handles-descriptor XML document.
-    # Each image entry looks like:
-    #   <image handle="1000001" created="..." modified="..."/>
-    handles = re.findall(r'<image\b[^>]*\bhandle="([^"]+)"', list_xml)
-    return handles
+    # Per BIP spec DTD 4.4.6.1, the images-listing root contains zero or more
+    # EMPTY <image handle="..." created="..." modified="..."/> elements.
+    root = ET.fromstring(list_xml)
+    return [img.get('handle') for img in root.findall('image')
+            if img.get('handle')]
 
 
 def bip_get_image_properties_format(bd_addr=None,
@@ -1294,8 +1308,6 @@ def bip_get_image_properties_format(bd_addr=None,
     returns (None, None, None, None).
     """
 
-    import re
-
     event = defs.BTP_BIP_EV_CLIENT_GET_IMAGE_PROPERTIES_RSP
     if role == BIPObexRole.SECONDARY:
         event = defs.BTP_BIP_EV_SECOND_CLIENT_GET_IMAGE_PROPERTIES_RSP
@@ -1305,7 +1317,7 @@ def bip_get_image_properties_format(bd_addr=None,
         rsp_code=OBEXRspCode.SUCCESS,
         role=role,
         timeout=30)
-    logging.debug(f"bip_get_image_properties_format: result= {result}", result)
+    logging.debug("bip_get_image_properties_format: result= %r", result)
 
     if not result:
         return None, None, None, None
@@ -1314,42 +1326,24 @@ def bip_get_image_properties_format(bd_addr=None,
     if rsp_code != OBEXRspCode.SUCCESS or not body:
         return None, None, None, None
 
-    props_xml = body.decode('utf-8', errors='replace')
+    props_xml = _bip_extract_body_xml(body)
     logging.debug("GetImageProperties XML: %s", props_xml)
+    if props_xml is None:
+        return None, None, None, None
 
-    # Per BIP spec DTD, the image-properties document looks like:
-    #   <image-properties version="1.0" handle="1000001">
-    #     <native encoding="JPEG" pixel="1280*1024" size="1048576"/>
-    #     <variant encoding="JPEG" pixel="640*480"/>
-    #     <variant encoding="GIF" pixel="80*60-640*480"/>
-    #     <attachment content-type="text/plain" name="ABCD1234.txt"
-    #                 size="5120"/>
-    #   </image-properties>
-    # All of native/variant/attachment are EMPTY elements with inline attrs.
+    # Per BIP spec DTD 4.4.6.2, image-properties has exactly one native plus
+    # zero or more variant / attachment EMPTY elements with inline attrs.
+    root = ET.fromstring(props_xml)
 
-    def _attrs(tag_match):
-        return dict(re.findall(r'\b([\w-]+)="([^"]*)"', tag_match))
-
-    # Parse the image handle from the <image-properties handle="..."> root
-    # element. Match only the opening tag's attribute list.
-    handle = None
-    m = re.search(r'<image-properties\b([^>]*)>', props_xml)
-    if m:
-        h = re.search(r'\bhandle="([^"]*)"', m.group(1))
-        if h:
-            handle = h.group(1)
+    handle = root.get('handle')
 
     native = {}
+    native_elem = root.find('native')
+    if native_elem is not None:
+        native = dict(native_elem.attrib)
 
-    m = re.search(r'<native\b([^>]*)/?>', props_xml)
-    if m:
-        native = _attrs(m.group(1))
-
-    variants = [_attrs(a) for a in
-                re.findall(r'<variant\b([^>]*)/?>', props_xml)]
-
-    attachments = [_attrs(a) for a in
-                   re.findall(r'<attachment\b([^>]*)/?>', props_xml)]
+    variants = [dict(v.attrib) for v in root.findall('variant')]
+    attachments = [dict(a.attrib) for a in root.findall('attachment')]
 
     return handle, native, variants, attachments
 
@@ -1373,21 +1367,13 @@ def bip_get_attachment_names(bd_addr=None,
     return [a['name'] for a in attachments if 'name' in a]
 
 
-# The most recent image handed to bip_put_image(). It is registered into the
-# local image database by bip_register_put_image() once the server returns the
-# Img-Handle it allocated, so the sent image, its thumbnail and any attachment
-# stay consistent under that handle for later PutLinkedThumbnail /
-# PutLinkedAttachment requests.
-_last_put_image = None
-
-
 def bip_register_put_image(handle, bd_addr=None,
                            bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
     """Register the last image sent via bip_put_image into the local DB.
 
     *handle* is the Img-Handle allocated by the server in the PutImage
     response. It may be raw OBEX bytes (UTF-16BE, null-terminated) or a
-    string. The remembered image (see _last_put_image) is keyed under this
+    string. The remembered image (see last_put_image) is keyed under this
     handle so a subsequent PutLinkedThumbnail / PutLinkedAttachment can look
     it up and reference the same handle. A thumbnail is generated when the
     image does not already carry one.
@@ -1396,8 +1382,6 @@ def bip_register_put_image(handle, bd_addr=None,
     register.
     """
     from autopts.ptsprojects.stack.layers.bip import _make_dummy_jpeg
-
-    global _last_put_image
 
     if isinstance(handle, (bytes, bytearray)):
         try:
@@ -1411,7 +1395,7 @@ def bip_register_put_image(handle, bd_addr=None,
                       "register")
         return None
 
-    img = _last_put_image
+    img = get_stack().bip.image_db.last_put_image
     if img is None:
         logging.debug("bip_register_put_image: no image was sent, nothing "
                       "to register")
@@ -1523,8 +1507,7 @@ def bip_put_image(img, encoding, pixel, bd_addr=None,
     # bip_register_put_image). This keeps the sent image, its thumbnail and
     # any attachment consistent with the handle the server assigns, which the
     # subsequent PutLinkedThumbnail / PutLinkedAttachment reference.
-    global _last_put_image
-    _last_put_image = img
+    stack.bip.image_db.last_put_image = img
 
     data = bytearray()
     img_desc_xml = (f'<image-descriptor version="1.0">'
@@ -1563,7 +1546,7 @@ def bip_put_image(img, encoding, pixel, bd_addr=None,
     else:
         data.extend(_obex_hdr_byte_seq(OBEXHdr.BODY, chunk))
         final = 0
-        _pending_ops[bd_addr_resolved] = {
+        sess.pending_put = {
             'cmd_key': 'put_image',
             'data': image_data,
             'offset': chunk_size,
@@ -1603,10 +1586,8 @@ def bip_put_linked_thumbnail(bd_addr=None,
     # Resolve the image record whose thumbnail is to be sent. For
     # consistency the image is taken from the one most recently sent via
     # PutImage; fall back to the most-recent image in the local database.
-    global _last_put_image
-    if _last_put_image is not None:
-        img = _last_put_image
-    else:
+    img = db.last_put_image
+    if img is None:
         handles = db.ds.ordered_handles()
         img = db.ds.images[handles[-1]] if handles else None
 
@@ -1654,7 +1635,7 @@ def bip_put_linked_thumbnail(bd_addr=None,
     else:
         payload.extend(_obex_hdr_byte_seq(OBEXHdr.BODY, chunk))
         final = 0
-        _pending_ops[bd_addr_resolved] = {
+        sess.pending_put = {
             'cmd_key': 'put_linked_thumbnail',
             'data': thumbnail_data,
             'offset': chunk_size,
@@ -1680,7 +1661,7 @@ def bip_put_linked_attachment(bd_addr=None,
     attachment-descriptor (Img-Description) and the Body describe the
     attachment that genuinely belongs to the linked image, so both the linked
     handle AND the attachment's name/content-type/charset/data are taken from
-    the image most recently pushed via PutImage (recorded in _last_put_image,
+    the image most recently pushed via PutImage (recorded in last_put_image,
     with a default attachment seeded by bip_prepare_put_image). Falls back to
     the most-recent image in the local database.
 
@@ -1702,12 +1683,10 @@ def bip_put_linked_attachment(bd_addr=None,
     bd_addr_resolved = pts_addr_get(bd_addr)
 
     # Resolve the linked image by consistency: reuse the image most recently
-    # pushed via PutImage (recorded in _last_put_image once the PutImage
+    # pushed via PutImage (recorded in last_put_image once the PutImage
     # response arrives). Fall back to the most-recent image in the local DB.
-    global _last_put_image
-    if _last_put_image is not None and _last_put_image.handle:
-        img = _last_put_image
-    else:
+    img = db.last_put_image
+    if img is None or not img.handle:
         handles = db.ds.ordered_handles()
         img = db.ds.images[handles[-1]] if handles else None
 
@@ -1784,7 +1763,7 @@ def bip_put_linked_attachment(bd_addr=None,
     else:
         payload.extend(_obex_hdr_byte_seq(OBEXHdr.BODY, chunk))
         final = 0
-        _pending_ops[bd_addr_resolved] = {
+        sess.pending_put = {
             'cmd_key': 'put_linked_attachment',
             'data': attachment_data,
             'offset': chunk_size,
@@ -1931,6 +1910,56 @@ def _bip_ev_l2cap_disconnected(bip, data, data_len):
     bip.remove_bip_connection(addr, BIPTransportType.L2CAP_CONN)
 
 
+def _bip_ev_second_rfcomm_connected(bip, data, data_len):
+    logging.debug('%s %r', _bip_ev_second_rfcomm_connected.__name__, data)
+
+    hdr_fmt = '<B6s'
+    _, addr = struct.unpack_from(hdr_fmt, data)
+    logging.debug('BIP second RFCOMM connected: addr %r', addr)
+    addr = le_bytes_to_hex_str(addr)
+    # The secondary transport shares the peer's ACL; add_bip_connection() is
+    # idempotent and records the transport type on the SECONDARY session so it
+    # does not overwrite the primary transport's type.
+    bip.add_bip_connection(addr, BIPTransportType.RFCOMM_CONN,
+                           role=BIPObexRole.SECONDARY)
+
+
+def _bip_ev_second_rfcomm_disconnected(bip, data, data_len):
+    logging.debug('%s %r', _bip_ev_second_rfcomm_disconnected.__name__, data)
+
+    hdr_fmt = '<B6s'
+    _, addr = struct.unpack_from(hdr_fmt, data)
+    logging.debug('BIP second RFCOMM disconnected: addr %r', addr)
+    addr = le_bytes_to_hex_str(addr)
+    # Clear the secondary session's transport type only; remove_bip_connection()
+    # drops the whole connection only once no session still has a transport, so
+    # a still-active primary is preserved.
+    bip.remove_bip_connection(addr, BIPTransportType.RFCOMM_CONN,
+                              role=BIPObexRole.SECONDARY)
+
+
+def _bip_ev_second_l2cap_connected(bip, data, data_len):
+    logging.debug('%s %r', _bip_ev_second_l2cap_connected.__name__, data)
+
+    hdr_fmt = '<B6s'
+    _, addr = struct.unpack_from(hdr_fmt, data)
+    logging.debug('BIP second L2CAP connected: addr %r', addr)
+    addr = le_bytes_to_hex_str(addr)
+    bip.add_bip_connection(addr, BIPTransportType.L2CAP_CONN,
+                           role=BIPObexRole.SECONDARY)
+
+
+def _bip_ev_second_l2cap_disconnected(bip, data, data_len):
+    logging.debug('%s %r', _bip_ev_second_l2cap_disconnected.__name__, data)
+
+    hdr_fmt = '<B6s'
+    _, addr = struct.unpack_from(hdr_fmt, data)
+    logging.debug('BIP second L2CAP disconnected: addr %r', addr)
+    addr = le_bytes_to_hex_str(addr)
+    bip.remove_bip_connection(addr, BIPTransportType.L2CAP_CONN,
+                              role=BIPObexRole.SECONDARY)
+
+
 def _bip_ev_server_connect_req(bip, data, data_len):
     logging.debug('%s %r', _bip_ev_server_connect_req.__name__, data)
 
@@ -1992,10 +2021,7 @@ def _parse_server_op_req(data):
     return addr, final, headers, srm, srmp
 
 
-_chunk_offsets = {}
 _CHUNK_SIZE = 150
-
-_pending_ops = {}
 
 _EV_TO_GET_CMD = {
     defs.BTP_BIP_EV_CLIENT_GET_CAPS_RSP: 'get_capabilities',
@@ -2013,7 +2039,9 @@ _EV_TO_GET_CMD = {
 def _send_continuation(addr, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
     from autopts.ptsprojects.stack.layers.bip import _obex_hdr_byte_seq
 
-    pending = _pending_ops.get(addr)
+    conn = get_stack().bip.get_bip_connection(addr)
+    sess = conn.get_session(BIPObexRole.PRIMARY) if conn else None
+    pending = sess.pending_put if sess else None
     if not pending:
         return
 
@@ -2030,8 +2058,6 @@ def _send_continuation(addr, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
     is_last = (offset + chunk_size >= len(image_data))
     prefix = bytearray()
 
-    conn = get_stack().bip.get_bip_connection(addr)
-    sess = conn.get_session(BIPObexRole.PRIMARY) if conn else None
     if sess and sess.is_srm_allowed() and sess.srmp_wait_count > 0:
         sess.srm_flags |= BIPSrmFlag.SRMP_LOCAL
         prefix.append(OBEXHdr.SRMP)
@@ -2043,7 +2069,7 @@ def _send_continuation(addr, bd_addr_type=defs.BTP_BR_ADDRESS_TYPE):
     data = bytearray(prefix)
     if is_last:
         data.extend(_obex_hdr_byte_seq(OBEXHdr.END_BODY, chunk))
-        del _pending_ops[addr]
+        sess.pending_put = None
         final = 1
     else:
         data.extend(_obex_hdr_byte_seq(OBEXHdr.BODY, chunk))
@@ -2065,9 +2091,14 @@ def _send_chunked_rsp(cmd_key, addr, chunk_key, body_data,
                       srmp_wait=False):
     from autopts.ptsprojects.stack.layers.bip import _obex_hdr_byte_seq
 
-    offset = _chunk_offsets.get(chunk_key, 0)
+    conn = get_stack().bip.get_bip_connection(addr)
+    sess = conn.get_session(BIPObexRole.PRIMARY) if conn else None
+    chunk_offsets = sess.chunk_offsets if sess else {}
+    offset = chunk_offsets.get(chunk_key, 0)
     remaining = len(body_data) - offset
-    chunk_size = min(remaining, _CHUNK_SIZE)
+    body_hdr_overhead = 3
+    available = _CHUNK_SIZE - body_hdr_overhead
+    chunk_size = min(remaining, available)
     chunk = body_data[offset:offset + chunk_size]
 
     data = bytearray()
@@ -2085,13 +2116,13 @@ def _send_chunked_rsp(cmd_key, addr, chunk_key, body_data,
 
     if offset + chunk_size >= len(body_data):
         data.extend(_obex_hdr_byte_seq(OBEXHdr.END_BODY, chunk))
-        _chunk_offsets[chunk_key] = 0
+        chunk_offsets[chunk_key] = 0
         _bip_operation_rsp_cmd(cmd_key, bd_addr=addr,
                                rsp_code=OBEXRspCode.SUCCESS,
                                data=bytes(data))
     else:
         data.extend(_obex_hdr_byte_seq(OBEXHdr.BODY, chunk))
-        _chunk_offsets[chunk_key] = offset + chunk_size
+        chunk_offsets[chunk_key] = offset + chunk_size
         _bip_operation_rsp_cmd(cmd_key, bd_addr=addr,
                                rsp_code=OBEXRspCode.CONTINUE,
                                data=bytes(data))
@@ -2144,7 +2175,7 @@ def _send_get_rsp_with_srm(conn, cmd_key, addr, chunk_key, body_data,
        not (sess.srm_flags & BIPSrmFlag.SRM_REMOTE):
         _send_chunked_rsp(cmd_key, addr, chunk_key, body_data,
                           extra_headers=extra_headers)
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             if sess:
                 sess.reset_srm()
             sess._pending_body.pop(chunk_key, None)
@@ -2175,10 +2206,10 @@ def _send_get_rsp_with_srm(conn, cmd_key, addr, chunk_key, body_data,
                           srmp_wait=srmp_wait)
 
     if sess.is_srm_full_speed() and final:
-        while _chunk_offsets.get(chunk_key, 0) > 0:
+        while sess.chunk_offsets.get(chunk_key, 0) > 0:
             _send_chunked_rsp(cmd_key, addr, chunk_key, body_data)
 
-    if _chunk_offsets.get(chunk_key, 0) == 0:
+    if sess.chunk_offsets.get(chunk_key, 0) == 0:
         sess.reset_srm()
         sess._pending_body.pop(chunk_key, None)
 
@@ -2251,9 +2282,13 @@ def _bip_ev_server_get_caps_req(bip, data, data_len,
     bip.rx(addr, ev_id, (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             sess._pending_body[chunk_key] = \
                 bip.image_db.get_caps_rsp(headers)
         _send_get_rsp_with_srm(conn, rsp_cmd, addr,
@@ -2271,9 +2306,13 @@ def _bip_ev_server_get_image_list_req(bip, data, data_len,
     bip.rx(addr, ev_id, (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             app_params = headers.get(OBEXHdr.APP_PARAM, {})
             body_data, rsp_app_params, img_desc = \
                 bip.image_db.get_image_list_rsp(headers, app_params)
@@ -2300,6 +2339,10 @@ def _bip_ev_server_get_image_properties_req(bip, data, data_len,
     bip.rx(addr, ev_id, (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
         # Spec 4.5.7 (Table 4.31): Img-Handle is mandatory and must be valid.
@@ -2314,7 +2357,7 @@ def _bip_ev_server_get_image_properties_req(bip, data, data_len,
             _bip_operation_rsp_cmd(rsp_cmd, bd_addr=addr,
                                    rsp_code=OBEXRspCode.NOT_FOUND, data=b'')
             return
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             sess._pending_body[chunk_key] = \
                 bip.image_db.get_image_properties_rsp(headers)
         _send_get_rsp_with_srm(conn, rsp_cmd, addr,
@@ -2331,6 +2374,10 @@ def _bip_ev_server_get_image_req(bip, data, data_len,
     bip.rx(addr, ev_id, (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
         # Spec 4.5.8 (Table 4.33): Img-Handle is mandatory and must be valid.
@@ -2345,7 +2392,7 @@ def _bip_ev_server_get_image_req(bip, data, data_len,
             _bip_operation_rsp_cmd(rsp_cmd, bd_addr=addr,
                                    rsp_code=OBEXRspCode.NOT_FOUND, data=b'')
             return
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             sess._pending_body[chunk_key] = \
                 bip.image_db.get_image_rsp(headers)
         body_data = sess._pending_body[chunk_key]
@@ -2371,6 +2418,10 @@ def _bip_ev_server_get_linked_thumbnail_req(bip, data, data_len,
     bip.rx(addr, ev_id, (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
         # Spec 4.5.9 (Table 4.35): Img-Handle is mandatory and must be valid.
@@ -2383,7 +2434,7 @@ def _bip_ev_server_get_linked_thumbnail_req(bip, data, data_len,
             _bip_operation_rsp_cmd(rsp_cmd, bd_addr=addr,
                                    rsp_code=OBEXRspCode.NOT_FOUND, data=b'')
             return
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             sess._pending_body[chunk_key] = \
                 bip.image_db.get_linked_thumbnail_rsp(headers)
         _send_get_rsp_with_srm(conn, rsp_cmd, addr,
@@ -2401,6 +2452,10 @@ def _bip_ev_server_get_linked_attachment_req(bip, data, data_len,
     bip.rx(addr, ev_id, (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
         # Spec 4.5.10 (Table 4.37): Img-Handle is mandatory and must be valid,
@@ -2421,7 +2476,7 @@ def _bip_ev_server_get_linked_attachment_req(bip, data, data_len,
             _bip_operation_rsp_cmd(rsp_cmd, bd_addr=addr,
                                    rsp_code=OBEXRspCode.NOT_FOUND, data=b'')
             return
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             sess._pending_body[chunk_key] = \
                 bip.image_db.get_linked_attachment_rsp(headers)
         _send_get_rsp_with_srm(conn, rsp_cmd, addr,
@@ -2437,10 +2492,14 @@ def _bip_ev_server_get_partial_image_req(bip, data, data_len):
     bip.rx(addr, defs.BTP_BIP_EV_SERVER_GET_PARTIAL_IMAGE_REQ, (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
         chunk_key = 'get_partial_image'
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             app_params = headers.get(OBEXHdr.APP_PARAM, {})
             body_data, rsp_app_params = \
                 bip.image_db.get_partial_image_rsp(headers, app_params)
@@ -2470,10 +2529,14 @@ def _bip_ev_server_get_monitoring_image_req(bip, data, data_len):
            (final, headers))
     if bip.auto_response_enabled:
         conn = bip.get_bip_connection(addr)
+        if conn is None:
+            logging.error('BIP server auto-response: no connection for %s',
+                          addr)
+            return
         sess = conn.get_session(BIPObexRole.PRIMARY)
         _update_srm_state(conn, srm, srmp)
         chunk_key = 'get_monitoring_image'
-        if _chunk_offsets.get(chunk_key, 0) == 0:
+        if sess.chunk_offsets.get(chunk_key, 0) == 0:
             body_data, img_handle = \
                 bip.image_db.get_monitoring_image_rsp(headers)
             # Spec Table 4.50: the Img-Handle header is only returned when the
@@ -2786,10 +2849,11 @@ def _bip_ev_client_rsp(ev_id, name, bip, data, data_len):
         if sess is not None:
             sess._pending_body.setdefault(ev_id, bytearray()).extend(body)
     else:
-        # rsp_code == SUCCESS: merge only THIS operation's buffered CONTINUE
-        # fragments with the final body, then push exactly one SUCCESS entry to
-        # the rx queue for the waiter. Clear the reassembly buffer afterwards so
-        # no leftover data can leak into a subsequent operation.
+        # rsp_code == SUCCESS or PARTIAL_CONTENT: merge only THIS operation's
+        # buffered CONTINUE fragments with the final body, then push exactly one
+        # entry carrying the real rsp_code to the rx queue for the waiter. Clear
+        # the reassembly buffer afterwards so no leftover data can leak into a
+        # subsequent operation.
         merged = bytearray()
         if sess is not None:
             merged.extend(sess._pending_body.pop(ev_id, bytearray()))
@@ -2805,7 +2869,7 @@ def _bip_ev_client_rsp(ev_id, name, bip, data, data_len):
             handle = obex_parse_headers(bytes(merged)).get(BIP_HDR_IMG_HANDLE)
             if handle:
                 bip_register_put_image(handle, bd_addr=addr)
-        bip.rx(addr, ev_id, (OBEXRspCode.SUCCESS, bytes(merged)))
+        bip.rx(addr, ev_id, (rsp_code, bytes(merged)))
         return
 
     # --- CONTINUE: drive the next request/packet ---
@@ -2815,9 +2879,9 @@ def _bip_ev_client_rsp(ev_id, name, bip, data, data_len):
             return
         _bip_operation_cmd(get_cmd, bd_addr=addr, final=1, data=b'',
                            continuation=True)
-    elif addr in _pending_ops:
-        if sess and sess.is_srm_full_speed():
-            while addr in _pending_ops:
+    elif sess and sess.pending_put is not None:
+        if sess.is_srm_full_speed():
+            while sess.pending_put is not None:
 
                 _send_continuation(addr)
         else:
@@ -2825,10 +2889,10 @@ def _bip_ev_client_rsp(ev_id, name, bip, data, data_len):
 
 
 def bip_get_put_image_handle():
-    global _last_put_image
-    if _last_put_image is None:
+    img = get_stack().bip.image_db.last_put_image
+    if img is None:
         return None
-    return _last_put_image.handle
+    return img.handle
 
 
 def _bip_ev_client_disconnected(bip, data, data_len):
@@ -3087,7 +3151,7 @@ def _bip_ev_second_client_rsp(ev_id, name, bip, data, data_len):
         merged.extend(body)
         if sess is not None:
             sess.reset_srm()
-        bip.rx(addr, ev_id, (OBEXRspCode.SUCCESS, bytes(merged)),
+        bip.rx(addr, ev_id, (rsp_code, bytes(merged)),
                role=BIPObexRole.SECONDARY)
         return
 
@@ -3154,6 +3218,10 @@ BIP_EV_HANDLERS = {
     defs.BTP_BIP_EV_RFCOMM_DISCONNECTED: _bip_ev_rfcomm_disconnected,
     defs.BTP_BIP_EV_L2CAP_CONNECTED: _bip_ev_l2cap_connected,
     defs.BTP_BIP_EV_L2CAP_DISCONNECTED: _bip_ev_l2cap_disconnected,
+    defs.BTP_BIP_EV_SECOND_RFCOMM_CONNECTED: _bip_ev_second_rfcomm_connected,
+    defs.BTP_BIP_EV_SECOND_RFCOMM_DISCONNECTED: _bip_ev_second_rfcomm_disconnected,
+    defs.BTP_BIP_EV_SECOND_L2CAP_CONNECTED: _bip_ev_second_l2cap_connected,
+    defs.BTP_BIP_EV_SECOND_L2CAP_DISCONNECTED: _bip_ev_second_l2cap_disconnected,
     defs.BTP_BIP_EV_SERVER_CONNECT_REQ: _bip_ev_server_connect_req,
     defs.BTP_BIP_EV_SERVER_DISCONNECT_REQ: _bip_ev_server_disconnect_req,
     defs.BTP_BIP_EV_SERVER_ABORT_REQ: _bip_ev_server_abort_req,
@@ -3308,6 +3376,34 @@ def bip_ev_l2cap_disconnected(bip, data, data_len):
                   bip, data, data_len)
     bip.event_handler.enqueue_event(
         defs.BTP_BIP_EV_L2CAP_DISCONNECTED, data, data_len)
+
+
+def bip_ev_second_rfcomm_connected(bip, data, data_len):
+    logging.debug('%s %r %r %r', bip_ev_second_rfcomm_connected.__name__,
+                  bip, data, data_len)
+    bip.event_handler.enqueue_event(
+        defs.BTP_BIP_EV_SECOND_RFCOMM_CONNECTED, data, data_len)
+
+
+def bip_ev_second_rfcomm_disconnected(bip, data, data_len):
+    logging.debug('%s %r %r %r', bip_ev_second_rfcomm_disconnected.__name__,
+                  bip, data, data_len)
+    bip.event_handler.enqueue_event(
+        defs.BTP_BIP_EV_SECOND_RFCOMM_DISCONNECTED, data, data_len)
+
+
+def bip_ev_second_l2cap_connected(bip, data, data_len):
+    logging.debug('%s %r %r %r', bip_ev_second_l2cap_connected.__name__,
+                  bip, data, data_len)
+    bip.event_handler.enqueue_event(
+        defs.BTP_BIP_EV_SECOND_L2CAP_CONNECTED, data, data_len)
+
+
+def bip_ev_second_l2cap_disconnected(bip, data, data_len):
+    logging.debug('%s %r %r %r', bip_ev_second_l2cap_disconnected.__name__,
+                  bip, data, data_len)
+    bip.event_handler.enqueue_event(
+        defs.BTP_BIP_EV_SECOND_L2CAP_DISCONNECTED, data, data_len)
 
 
 def bip_ev_server_connect_req(bip, data, data_len):
@@ -3827,6 +3923,10 @@ BIP_EV = {
     defs.BTP_BIP_EV_RFCOMM_DISCONNECTED: bip_ev_rfcomm_disconnected,
     defs.BTP_BIP_EV_L2CAP_CONNECTED: bip_ev_l2cap_connected,
     defs.BTP_BIP_EV_L2CAP_DISCONNECTED: bip_ev_l2cap_disconnected,
+    defs.BTP_BIP_EV_SECOND_RFCOMM_CONNECTED: bip_ev_second_rfcomm_connected,
+    defs.BTP_BIP_EV_SECOND_RFCOMM_DISCONNECTED: bip_ev_second_rfcomm_disconnected,
+    defs.BTP_BIP_EV_SECOND_L2CAP_CONNECTED: bip_ev_second_l2cap_connected,
+    defs.BTP_BIP_EV_SECOND_L2CAP_DISCONNECTED: bip_ev_second_l2cap_disconnected,
     defs.BTP_BIP_EV_SERVER_CONNECT_REQ: bip_ev_server_connect_req,
     defs.BTP_BIP_EV_SERVER_DISCONNECT_REQ: bip_ev_server_disconnect_req,
     defs.BTP_BIP_EV_SERVER_ABORT_REQ: bip_ev_server_abort_req,

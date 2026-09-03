@@ -90,6 +90,18 @@ class RTT:
         RTT.jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
         RTT.jlink.connect(device_core)
 
+        # Allow widening the RTT search range via environment variable. On some
+        # targets (e.g. NXP MIMXRT1170 M7) the _SEGGER_RTT control block ends up
+        # in DTCM (0x2000_0000), which J-Link's default auto-search does not scan,
+        # resulting in an empty (0 byte) log.
+        search_ranges = os.environ.get("AUTOPTS_RTT_SEARCH_RANGES")
+        if search_ranges:
+            ranges = " ".join(part.strip() for part in search_ranges.split(","))
+            try:
+                RTT.jlink.exec_command(f"SetRTTSearchRanges {ranges}")
+            except pylink.errors.JLinkException as err:
+                log(f'Failed to set RTT search ranges, err: {err}')
+
         status = RTT.jlink.rtt_get_status()
         if status.IsRunning == 0:
             RTT.jlink.rtt_start()

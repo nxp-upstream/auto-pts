@@ -18,10 +18,8 @@ import re
 
 from autopts.pybtp import btp, defs
 
-from autopts.pybtp.btp.bip import BIP_HDR_IMG_DESC
-
 from autopts.pybtp.types import BIPAppParamTag, BIPConnType, OBEXHdr, OBEXRspCode, WIDParams, \
-    obex_add_headers, obex_parse_headers, BIPRemoteDisplay, BIPTransportType,BIPImagingSvclass
+    BIPRemoteDisplay, BIPImagingSvclass
 
 from autopts.ptsprojects.stack import get_stack
 from autopts.ptsprojects.stack.layers.bip import BIPObexRole
@@ -73,8 +71,8 @@ def hdl_wid_18(params: WIDParams):
     """
     stack = get_stack()
     stack.bip.enable_auto_response()
-    btp.gap_set_conn()
-    btp.gap_set_gendiscov()
+    btp.gap_set_connectable()
+    btp.gap_set_general_discoverable()
     return True
 
 
@@ -82,7 +80,7 @@ def hdl_wid_19(params: WIDParams):
     """
     Take action to create an l2cap channel or rfcomm channel for an OBEX connection.
     """
-    btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+    btp.gap_connect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
     btp.gap_wait_for_connection()
 
     btp.bip_sdp_discover()
@@ -109,7 +107,7 @@ def hdl_wid_20(params: WIDParams):
     """
     Take action to create an l2cap channel for an OBEX connection.
     """
-    btp.gap_conn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+    btp.gap_connect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
     btp.gap_wait_for_connection()
 
     btp.bip_sdp_discover()
@@ -162,12 +160,14 @@ def hdl_wid_22(params: WIDParams):
             "BIP/AAR/MFS/BV-13-C", "BIP/AAR/MFS/BV-15-C", "BIP/AAR/FFC/BV-01-C",
             "BIP/AAR/FFC/BV-03-C", "BIP/AAR/FFC/BV-05-C", "BIP/AAR/FFC/BV-07-C"],
         BIPConnType.SEC_REFERENCED_OBJECTS: [
-            "BIP/AIPR/FFC/BV-02-C", "BIP/AIPR/FSF/BV-06-C", "BIP/AIPR/ADP/BV-01-C"],
+            "BIP/AIPR/FFC/BV-02-C", "BIP/AIPR/FSF/BV-06-C", 
+            "BIP/AIPR/ADP/BV-01-C","BIP/AIPR/MFS/BV-18-C"],
     }
 
     sec_server_register = {
         BIPConnType.SEC_REFERENCED_OBJECTS: [
-            "BIP/AIPI/ADP/BV-01-C", "BIP/AIPI/FFC/BV-01-C"],
+            "BIP/AIPI/ADP/BV-01-C", "BIP/AIPI/FFC/BV-01-C",
+            "BIP/AIPI/MFS/BV-17-C", "BIP/AIPI/FSF/BV-05-C"],
         BIPConnType.SEC_ARCHIVED_OBJECTS: [
             "BIP/AAR/ACH/BV-01-C", "BIP/AAI/MFS/BV-12-C", "BIP/AAI/MFS/BV-14-C",
             "BIP/AAI/MFS/BV-16-C", "BIP/AAI/FFC/BV-02-C", "BIP/AAI/FFC/BV-04-C",
@@ -204,6 +204,10 @@ def hdl_wid_22(params: WIDParams):
             event=defs.BTP_BIP_EV_CLIENT_PUT_IMAGE_RSP,
             rsp_code=OBEXRspCode.SUCCESS):
             return False
+    if tc in ["BIP/CL/GOEP/SRMP/BV-01-C"]:
+        img, encoding, pixel = btp.bip_prepare_put_image()
+        btp.bip_put_image(img, encoding, pixel)
+        return btp.bip_wait_for_operation_complete(event=defs.BTP_BIP_EV_CLIENT_PUT_IMAGE_RSP, rsp_code=OBEXRspCode.SUCCESS,timeout = 60)
     return True
 
 
@@ -221,7 +225,6 @@ def hdl_wid_23(params: WIDParams):
     btp.bip_get_capabilities()
     return btp.bip_wait_for_operation_complete(event=defs.BTP_BIP_EV_CLIENT_GET_CAPS_RSP, rsp_code=OBEXRspCode.SUCCESS)
 
-handles = None
 
 def hdl_wid_24(params: WIDParams):
     """
@@ -247,10 +250,10 @@ def hdl_wid_24(params: WIDParams):
             role=BIPObexRole.SECONDARY)
 
     btp.bip_get_image_list(data=data)
-    global handles
     handles = btp.bip_get_image_list_format()
     if handles is None:
         return False
+    get_stack().bip.image_db.set_last_image_list(handles)
     return True
 
 
@@ -516,7 +519,7 @@ def hdl_wid_35(params: WIDParams):
     conn_role = BIPObexRole.SECONDARY
 
     if params.test_case_name in ["BIP/AIPR/FFC/BV-02-C", "BIP/AIPR/FSF/BV-06-C",
-                                 "BIP/AIPR/ADP/BV-01-C"]:
+                                 "BIP/AIPR/ADP/BV-01-C", "BIP/AIPR/MFS/BV-18-C"]:
         uuid = BIPImagingSvclass.IMAGING_REFOBJS
         conn_type = BIPConnType.SEC_REFERENCED_OBJECTS
 
@@ -575,20 +578,29 @@ def hdl_wid_38(params: WIDParams):
         handle = '1000001'.encode("utf-16-be")
 
     role = BIPObexRole.PRIMARY
+    if params.test_case_name in ["BIP/AIPR/FFC/BV-02-C", "BIP/AIPR/FSF/BV-06-C",
+                                 "BIP/AIPR/ADP/BV-01-C", "BIP/AIPR/MFS/BV-18-C"]:
+        role = BIPObexRole.SECONDARY
 
-    data = bytearray()
-    btp.bip_add_headers(data, {OBEXHdr.IMG_HANDLE: handle})
     if role == BIPObexRole.SECONDARY:
-        btp.bip_second_get_image_properties(data=data)
+        # Referenced Objects has no GetImageProperties; the Name is the image
+        # file name referenced via the IMG SRC tag in the printer-control
+        # object, which the server-side StartPrint handler parsed and stored.
+        name = get_stack().bip.image_db.get_print_img_src()
+        if not name:
+            log('hdl_wid_38: no IMG SRC resolved from StartPrint, failing')
+            return False
     else:
+        data = bytearray()
+        btp.bip_add_headers(data, {OBEXHdr.IMG_HANDLE: handle})
         btp.bip_get_image_properties(data=data)
-    name = btp.bip_get_attachment_names(role=role)
+        name = btp.bip_get_attachment_names(role=role)
 
-    if not name:
-        log('hdl_wid_38: no attachment name resolved from GetImageProperties, failing')
-        return False
-    if isinstance(name, (list, tuple)):
-        name = name[0]
+        if not name:
+            log('hdl_wid_38: no attachment name resolved from GetImageProperties, failing')
+            return False
+        if isinstance(name, (list, tuple)):
+            name = name[0]
 
     app_params = {BIPAppParamTag.PARTIAL_FILE_LENGTH: 0xFFFFFFFF,
                   BIPAppParamTag.PARTIAL_FILE_START_OFFSET: 0}
@@ -638,7 +650,7 @@ def hdl_wid_41(params: WIDParams):
         handle = m.group(1)
 
     if params.test_case_name == "BIP/RDI/MFS/BV-25-C":
-        global handles
+        handles = get_stack().bip.image_db.get_last_image_list()
         handle = handles[0]
         display_func = BIPRemoteDisplay.SELECT_IMAGE
     elif params.test_case_name == "BIP/RDI/MFS/BV-24-C":
@@ -725,6 +737,6 @@ def hdl_wid_20000(_: WIDParams):
     """
     Please prepare IUT into a connectable mode in BR/EDR.
     """
-    btp.gap_set_conn()
-    btp.gap_set_gendiscov()
+    btp.gap_set_connectable()
+    btp.gap_set_general_discoverable()
     return True
