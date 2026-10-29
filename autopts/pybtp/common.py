@@ -656,6 +656,10 @@ supported_svcs_cmds = {
         "service": 1 << defs.BTP_SERVICE_ID_OPP,
         "supported_commands": defs.BTP_OPP_CMD_READ_SUPPORTED_COMMANDS
     },
+    "BIP": {
+        "service": 1 << defs.BTP_SERVICE_ID_BIP,
+        "supported_commands": defs.BTP_BIP_CMD_READ_SUPPORTED_COMMANDS
+    },
 # GENERATOR append 1
     "VENDOR": {
         "service": 1 << defs.BTP_SERVICE_ID_VENDOR,
@@ -764,6 +768,8 @@ reg_unreg_service = {
                 defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_FTP),
     "opp_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
                 defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_OPP),
+    "bip_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
+                defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_BIP),
 # GENERATOR append 2
     "vendor_reg": (defs.BTP_SERVICE_ID_CORE, defs.BTP_CORE_CMD_REGISTER_SERVICE,
                    defs.BTP_INDEX_NONE, defs.BTP_SERVICE_ID_VENDOR),

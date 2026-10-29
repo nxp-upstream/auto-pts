@@ -22,6 +22,8 @@ from . import (
                avrcp,
                bap,
                bass,
+               bip,
+               # GENERATOR append 1
                cap,
                cas,
                ccp,
@@ -60,7 +62,6 @@ from . import (
                vcp,
                vcs,
                vocs,
-# GENERATOR append 1
 )
 
 __all__ = [
@@ -110,6 +111,7 @@ __all__ = [
     "hid11",
     "spp",
     "pbap",
+    "bip",
 # GENERATOR append 2
 ]
 

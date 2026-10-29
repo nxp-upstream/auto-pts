@@ -5,6 +5,7 @@ from .avctp import AVCTP_EV
 from .avdtp import AVDTP_EV
 from .avrcp import AVRCP_EV
 from .bap import BAP_EV
+from .bip import BIP_EV
 from .cap import CAP_EV
 from .ccp import CCP_EV
 from .core import CORE_EV
@@ -84,5 +85,6 @@ __all__ = [
     "A2DP_EV",
     "AVDTP_EV",
     "PBAP_EV",
+    "BIP_EV",
 # GENERATOR append 2
 ]
