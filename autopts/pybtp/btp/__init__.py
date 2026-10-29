@@ -22,6 +22,7 @@ from autopts.pybtp.btp.avctp import *  # noqa: F403 # used in many files : TODO 
 from autopts.pybtp.btp.avdtp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from autopts.pybtp.btp.avrcp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from autopts.pybtp.btp.bap import *  # noqa: F403 # used in many files : TODO import directly in files not with *
+from autopts.pybtp.btp.bip import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from autopts.pybtp.btp.btp import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from autopts.pybtp.btp.cap import *  # noqa: F403 # used in many files : TODO import directly in files not with *
 from autopts.pybtp.btp.cas import *  # noqa: F403 # used in many files : TODO import directly in files not with *

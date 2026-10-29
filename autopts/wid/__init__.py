@@ -18,6 +18,7 @@ from .avctp import avctp_wid_hdl
 from .avrcp import avrcp_wid_hdl
 from .bap import bap_wid_hdl
 from .bass import bass_wid_hdl
+from .bip import bip_wid_hdl
 from .ccp import ccp_wid_hdl
 from .csip import csip_wid_hdl
 from .csis import csis_wid_hdl
@@ -99,6 +100,7 @@ __all__ = [
     "pbap_wid_hdl",
     "hid_device_wid_hdl",
     "hid_host_wid_hdl",
+    "bip_wid_hdl",
 # GENERATOR append 2
     "generic_wid_hdl",
 ]

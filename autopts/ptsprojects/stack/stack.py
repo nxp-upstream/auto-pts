@@ -22,6 +22,7 @@ from autopts.ptsprojects.stack.layers.avdtp import AVDTP
 from autopts.ptsprojects.stack.layers.avctp import AVCTP
 from autopts.ptsprojects.stack.layers.avrcp import AVRCP
 from autopts.ptsprojects.stack.layers.bap import BAP
+from autopts.ptsprojects.stack.layers.bip import BIP
 from autopts.ptsprojects.stack.layers.cap import CAP
 from autopts.ptsprojects.stack.layers.ccp import CCP
 from autopts.ptsprojects.stack.layers.core import CORE
@@ -116,6 +117,7 @@ class Stack:
         self.pbap = None
         self.map = None
         self.ftp = None
+        self.bip = None
         # GENERATOR append 2
         self.supported_svcs_cmds = common.supported_svcs_cmds
 
@@ -278,6 +280,17 @@ class Stack:
         """Initialize the OPP stack layer."""
         self.opp = OPP()
 
+    def bip_init(self):
+        if self.bip:
+            # BIP() starts an event-handler worker thread, so the previous layer
+            # has to be shut down before it is dropped. The thread is a daemon
+            # and nothing else ever joins it, so otherwise every test case leaks
+            # one - and, worse, the old handler keeps dispatching into the BIP
+            # object it was built with: an event that lands on it updates state
+            # that get_stack().bip no longer points at.
+            self.bip.cleanup()
+        self.bip = BIP()
+
     # GENERATOR append 3
 
     def cleanup(self):
@@ -412,6 +425,9 @@ class Stack:
 
         if self.opp:
             self.opp_init()
+
+        if self.bip:
+            self.bip_init()
 
         # GENERATOR append 4
 

@@ -656,6 +656,10 @@ def core_reg_svc_opp():
     core_reg_svc_univ("opp_reg", "OPP")
 
 
+def core_reg_svc_bip():
+    core_reg_svc_univ("bip_reg", "BIP")
+
+
 # GENERATOR append 1
 
 
@@ -755,6 +759,7 @@ def event_handler(hdr, data):
         AVDTP_EV,
         AVRCP_EV,
         BAP_EV,
+        BIP_EV,
         CAP_EV,
         CCP_EV,
         CORE_EV,
@@ -838,6 +843,7 @@ def event_handler(hdr, data):
         defs.BTP_SERVICE_ID_MAP: (MAP_EV, stack.map),
         defs.BTP_SERVICE_ID_FTP: (FTP_EV, stack.ftp),
         defs.BTP_SERVICE_ID_OPP: (OPP_EV, stack.opp),
+        defs.BTP_SERVICE_ID_BIP: (BIP_EV, stack.bip),
         # GENERATOR append 3
     }
 
