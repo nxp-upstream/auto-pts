@@ -1736,7 +1736,7 @@ def gattc_read_multiple_rsp(store_val=False, store_rsp=False):
             add_to_verify_values((binascii.hexlify(values[0])).decode().upper())
 
 
-def gattc_read_multiple_var_rsp(store_val=False, store_rsp=False):
+def gattc_read_multiple_var_rsp(store_val=False, store_rsp=False, clear_values=True):
     iutctl = get_iut()
 
     tuple_hdr, tuple_data = iutctl.btp_socket.read()
@@ -1750,7 +1750,8 @@ def gattc_read_multiple_var_rsp(store_val=False, store_rsp=False):
     logging.debug("%r %r", rsp, values)
 
     if store_rsp or store_val:
-        clear_verify_values()
+        if clear_values:
+            clear_verify_values()
 
         if store_rsp:
             add_to_verify_values(att_rsp_str[rsp])

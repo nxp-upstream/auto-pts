@@ -1863,7 +1863,7 @@ def hdl_wid_148(params: WIDParams):
     btp.gattc_read_multiple_var(btp.pts_addr_type_get(), btp.pts_addr_get(), hdl1, hdl2)
 
     btp.gattc_read_multiple_var_rsp(store_rsp=False, store_val=True)
-    btp.gattc_read_multiple_var_rsp(store_rsp=False, store_val=True)
+    btp.gattc_read_multiple_var_rsp(store_rsp=False, store_val=True, clear_values=False)
     return True
 
 
