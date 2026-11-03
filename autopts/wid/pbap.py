@@ -1082,6 +1082,6 @@ def hdl_wid_20000(params: WIDParams):
     description: Please prepare IUT into a connectable mode in BR/EDR.
     """
     btp.gap_set_connectable()
-    btp.gap_set_io_cap(IOCap.no_input_output)
+    btp.gap_set_io_capability(IOCap.no_input_output)
     btp.gap_set_general_discoverable()
     return True
