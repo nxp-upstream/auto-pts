@@ -893,8 +893,8 @@ def hdl_wid_149(_: WIDParams):
     """
     Place the Implementation Under Test (IUT) in non-discoverable mode, then click Ok.
     """
-    btp.gap_set_nonconn()
-    btp.gap_set_nondiscov()
+    btp.gap_set_non_connectable()
+    btp.gap_set_non_discoverable()
     return True
 
 
