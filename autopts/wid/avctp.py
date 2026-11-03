@@ -176,7 +176,7 @@ def hdl_wid_2008(params: WIDParams):
         return False
 
     if params.test_case_name in ['AVCTP/CT/CCM/BV-02-C', 'AVCTP/TG/CCM/BV-02-C']:
-        btp.gap_disconn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+        btp.gap_disconnect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
         btp.gap_wait_for_disconnection()
 
     return True

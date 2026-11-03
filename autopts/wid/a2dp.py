@@ -197,7 +197,7 @@ def hdl_wid_1029(params: WIDParams):
     """
     btp.a2dp_stream_release()
     btp.a2dp_wait_for_stream_released(timeout=20)
-    btp.gap_disconn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+    btp.gap_disconnect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
 
     return True
 

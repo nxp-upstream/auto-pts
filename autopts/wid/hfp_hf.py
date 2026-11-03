@@ -704,7 +704,7 @@ def hdl_wid_94(_: WIDParams):
     btp.hfp_hf_disconnect()
     stack = get_stack()
     stack.hfp_hf.wait_for_disconnection(bd_addr)
-    btp.gap_disconn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+    btp.gap_disconnect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
     return True
 
 
@@ -720,7 +720,7 @@ def hdl_wid_98(_: WIDParams):
     """
     Click Ok, then close the audio connection (SCO) by one of the following ways:
     """
-    btp.gap_disconn(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
+    btp.gap_disconnect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
     return True
 
 
