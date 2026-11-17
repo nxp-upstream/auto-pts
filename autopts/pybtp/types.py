@@ -1074,97 +1074,103 @@ class PBAPPropertySelector:
 
 class OBEXHdr:
     COUNT = 0xC0
+    # Unicode text headers
     NAME = 0x01
-    TYPE = 0x42
-    LEN = 0xC3
-    TIME_ISO_8601 = 0x44
-    TIME = 0xC4
     DES = 0x05
+    DESCRIPTION = 0x05
+    DEST_NAME = 0x15
+    IMG_HANDLE = 0x30
+    # Byte sequence headers
+    TYPE = 0x42
+    TIME_ISO_8601 = 0x44
+    TIME_ISO = 0x44
     TARGET = 0x46
     HTTP = 0x47
     BODY = 0x48
     END_BODY = 0x49
+    END_OF_BODY = 0x49
     WHO = 0x4A
-    CONN_ID = 0xCB
     APP_PARAM = 0x4C
     AUTH_CHALLENGE = 0x4D
     AUTH_RSP = 0x4E
-    CREATE_ID = 0xCF
+    AUTH_RESPONSE = 0x4E
     WAN_UUID = 0x50
     OBJECT_CLASS = 0x51
     SESSION_PARAM = 0x52
+    IMG_DESCRIPTION = 0x71
+    # 1-byte quantity headers
     SESSION_SEQ_NUM = 0x93
     ACTION_ID = 0x94
-    DEST_NAME = 0x15
-    PERM = 0xD6
     SRM = 0x97
     SRMP = 0x98
+    # 4-byte quantity headers
+    LEN = 0xC3
     LENGTH = 0xC3
-    TIME_ISO = 0x44
+    TIME = 0xC4
     TIME_4BYTE = 0xC4
-    DESCRIPTION = 0x05
-    END_OF_BODY = 0x49
-    AUTH_RESPONSE = 0x4E
+    CONN_ID = 0xCB
+    CREATE_ID = 0xCF
     CREATOR_ID = 0xCF
+    PERM = 0xD6
     PERMISSION = 0xD6
 
 
 class OBEXRspCode:
     CONTINUE = 0x90
-    OK = 0xa0
-    SUCCESS = 0xa0
-    CREATED = 0xa1
-    ACCEPTED = 0xa2
-    NON_AUTH_INFO = 0xa3
-    NO_CONTENT = 0xa4
-    RESET_CONTENT = 0xa5
-    PARTIAL_CONTENT = 0xa6
-    MULTI_CHOICES = 0xb0
-    MOVED_PERM = 0xb1
-    MOVED_TEMP = 0xb2
-    SEE_OTHER = 0xb3
-    NOT_MODIFIED = 0xb4
-    USE_PROXY = 0xb5
-    BAD_REQ = 0xc0
-    UNAUTH = 0xc1
-    PAY_REQ = 0xc2
-    FORBIDDEN = 0xc3
-    NOT_FOUND = 0xc4
-    NOT_ALLOW = 0xc5
-    NOT_ACCEPT = 0xc6
-    PROXY_AUTH_REQ = 0xc7
-    REQ_TIMEOUT = 0xc8
-    CONFLICT = 0xc9
-    GONE = 0xca
-    LEN_REQ = 0xcb
-    PRECON_FAIL = 0xcc
-    ENTITY_TOO_LARGE = 0xcd
-    URL_TOO_LARGE = 0xce
-    UNSUPP_MEDIA_TYPE = 0xcf
-    INTER_ERROR = 0xd0
-    NOT_IMPL = 0xd1
-    BAD_GATEWAY = 0xd2
-    UNAVAIL = 0xd3
-    GATEWAY_TIMEOUT = 0xd4
-    VER_UNSUPP = 0xd5
-    DB_FULL = 0xe0
-    DB_LOCK = 0xe1
+    OK = 0xA0
+    SUCCESS = 0xA0
+    CREATED = 0xA1
+    ACCEPTED = 0xA2
+    NON_AUTH_INFO = 0xA3
     NON_AUTH = 0xA3
+    NO_CONTENT = 0xA4
+    RESET_CONTENT = 0xA5
+    PARTIAL_CONTENT = 0xA6
+    MULTI_CHOICES = 0xB0
     MULTI_CHOICE = 0xB0
+    MOVED_PERM = 0xB1
+    MOVED_TEMP = 0xB2
+    SEE_OTHER = 0xB3
+    NOT_MODIFIED = 0xB4
+    USE_PROXY = 0xB5
+    BAD_REQ = 0xC0
+    UNAUTH = 0xC1
+    PAY_REQ = 0xC2
     PAYMENT_REQD = 0xC2
+    FORBIDDEN = 0xC3
+    NOT_FOUND = 0xC4
+    NOT_ALLOW = 0xC5
     METHOD_NA = 0xC5
+    NOT_ACCEPT = 0xC6
     NOT_ACCEPTABLE = 0xC6
+    PROXY_AUTH_REQ = 0xC7
     PROXY_AUTH_REQD = 0xC7
+    REQ_TIMEOUT = 0xC8
+    CONFLICT = 0xC9
+    GONE = 0xCA
+    LEN_REQ = 0xCB
     LENGTH_REQD = 0xCB
+    PRECON_FAIL = 0xCC
     PRECOND_FAILED = 0xCC
+    ENTITY_TOO_LARGE = 0xCD
     REQ_ENTITY_LARGE = 0xCD
+    URL_TOO_LARGE = 0xCE
     REQ_URL_LARGE = 0xCE
+    UNSUPP_MEDIA_TYPE = 0xCF
     UNSUPP_MEDIA = 0xCF
+    INTER_ERROR = 0xD0
     INT_SERVER_ERR = 0xD0
+    NOT_IMPL = 0xD1
     NOT_IMPLEMENTED = 0xD1
+    BAD_GATEWAY = 0xD2
+    UNAVAIL = 0xD3
     SERVICE_UNAVBL = 0xD3
+    GATEWAY_TIMEOUT = 0xD4
+    VER_UNSUPP = 0xD5
     HTTP_VER_NOT_SUPPORTED = 0xD5
+    DB_FULL = 0xE0
     DATABASE_FULL = 0xE0
+    DB_LOCK = 0xE1
     DATABASE_LOCKED = 0xE1
 
 
@@ -1221,77 +1227,6 @@ class MAPAppParam:
     MAP_SUPPORTED_FEATURES = 0x29
     MSG_HANDLE = 0x2A
     MODIFY_TEXT = 0x2B
-
-
-class OBEXHdr:
-    COUNT = 0xC0
-    NAME = 0x01
-    TYPE = 0x42
-    LENGTH = 0xC3
-    TIME_ISO = 0x44
-    TIME_4BYTE = 0xC4
-    DESCRIPTION = 0x05
-    TARGET = 0x46
-    HTTP = 0x47
-    BODY = 0x48
-    END_OF_BODY = 0x49
-    WHO = 0x4A
-    CONN_ID = 0xCB
-    APP_PARAM = 0x4C
-    AUTH_CHALLENGE = 0x4D
-    AUTH_RESPONSE = 0x4E
-    CREATOR_ID = 0xCF
-    WAN_UUID = 0x50
-    OBJECT_CLASS = 0x51
-    SESSION_PARAM = 0x52
-    SESSION_SEQ_NUM = 0x93
-    ACTION_ID = 0x94
-    DEST_NAME = 0x15
-    PERMISSION = 0xD6
-    SRM = 0x97
-    SRMP = 0x98
-
-
-class OBEXRspCode:
-    CONTINUE = 0x90
-    SUCCESS = 0xA0
-    CREATED = 0xA1
-    ACCEPTED = 0xA2
-    NON_AUTH = 0xA3
-    NO_CONTENT = 0xA4
-    RESET_CONTENT = 0xA5
-    PARTIAL_CONTENT = 0xA6
-    MULTI_CHOICE = 0xB0
-    MOVED_PERM = 0xB1
-    MOVED_TEMP = 0xB2
-    SEE_OTHER = 0xB3
-    NOT_MODIFIED = 0xB4
-    USE_PROXY = 0xB5
-    BAD_REQ = 0xC0
-    UNAUTH = 0xC1
-    PAYMENT_REQD = 0xC2
-    FORBIDDEN = 0xC3
-    NOT_FOUND = 0xC4
-    METHOD_NA = 0xC5
-    NOT_ACCEPTABLE = 0xC6
-    PROXY_AUTH_REQD = 0xC7
-    REQ_TIMEOUT = 0xC8
-    CONFLICT = 0xC9
-    GONE = 0xCA
-    LENGTH_REQD = 0xCB
-    PRECOND_FAILED = 0xCC
-    REQ_ENTITY_LARGE = 0xCD
-    REQ_URL_LARGE = 0xCE
-    UNSUPP_MEDIA = 0xCF
-    INT_SERVER_ERR = 0xD0
-    NOT_IMPLEMENTED = 0xD1
-    BAD_GATEWAY = 0xD2
-    SERVICE_UNAVBL = 0xD3
-    GATEWAY_TIMEOUT = 0xD4
-    HTTP_VER_NOT_SUPPORTED = 0xD5
-    DATABASE_FULL = 0xE0
-    DATABASE_LOCKED = 0xE1
-
 
 class OBEXDigestChallenge:
     NONCE = 0x00
@@ -1408,82 +1343,6 @@ class PBAPPropertySelector:
     X_BT_UCI = (1 << 30)
     X_BT_UID = (1 << 31)
     PROPRIETARY_FILTER = 0x8000000000
-
-
-class OBEXHdr:
-    COUNT = 0xC0
-    NAME = 0x01
-    TYPE = 0x42
-    LEN = 0xC3
-    TIME_ISO_8601 = 0x44
-    TIME = 0xC4
-    DES = 0x05
-    TARGET = 0x46
-    HTTP = 0x47
-    BODY = 0x48
-    END_BODY = 0x49
-    WHO = 0x4A
-    CONN_ID = 0xCB
-    APP_PARAM = 0x4C
-    AUTH_CHALLENGE = 0x4D
-    AUTH_RSP = 0x4E
-    CREATE_ID = 0xCF
-    WAN_UUID = 0x50
-    OBJECT_CLASS = 0x51
-    SESSION_PARAM = 0x52
-    SESSION_SEQ_NUM = 0x93
-    ACTION_ID = 0x94
-    DEST_NAME = 0x15
-    PERM = 0xD6
-    SRM = 0x97
-    SRMP = 0x98
-    # BIP user-defined headers (not OBEX opcodes).
-    # Img-Handle: Unicode text (0x30-0x3F range), carries the image handle string.
-    IMG_HANDLE = 0x30
-    # Img-Description: byte sequence (0x70-0x7F range), carries XML image description.
-    IMG_DESCRIPTION = 0x71
-
-
-class OBEXRspCode:
-    CONTINUE = 0x90
-    OK = 0xa0
-    SUCCESS = 0xa0
-    CREATED = 0xa1
-    ACCEPTED = 0xa2
-    NON_AUTH_INFO = 0xa3
-    NO_CONTENT = 0xa4
-    RESET_CONTENT = 0xa5
-    PARTIAL_CONTENT = 0xa6
-    MULTI_CHOICES = 0xb0
-    MOVED_PERM = 0xb1
-    MOVED_TEMP = 0xb2
-    SEE_OTHER = 0xb3
-    NOT_MODIFIED = 0xb4
-    USE_PROXY = 0xb5
-    BAD_REQ = 0xc0
-    UNAUTH = 0xc1
-    PAY_REQ = 0xc2
-    FORBIDDEN = 0xc3
-    NOT_FOUND = 0xc4
-    NOT_ALLOW = 0xc5
-    NOT_ACCEPT = 0xc6
-    PROXY_AUTH_REQ = 0xc7
-    REQ_TIMEOUT = 0xc8
-    CONFLICT = 0xc9
-    GONE = 0xca
-    LEN_REQ = 0xcb
-    PRECON_FAIL = 0xcc
-    ENTITY_TOO_LARGE = 0xcd
-    URL_TOO_LARGE = 0xce
-    UNSUPP_MEDIA_TYPE = 0xcf
-    INTER_ERROR = 0xd0
-    NOT_IMPL = 0xd1
-    BAD_GATEWAY = 0xd2
-    UNAVAIL = 0xd3
-    GATEWAY_TIMEOUT = 0xd4
-    VER_UNSUPP = 0xd5
-    DB_FULL = 0xe0
-    DB_LOCK = 0xe1
 
 
 class OBEXAuthTag:
