@@ -32,13 +32,20 @@ FTP_UUID = StdUUID("f9ec7bc4-953c-11d2-984e-525400dc9e09")
 
 
 def set_folder(flags: int, folder_name: str = ''):
-    """Send SET_PATH with required CONN_ID + NAME headers per Zephyr API.
-    Always includes NAME header (empty string for root/backup navigation).
+    """
+    Send a SET_PATH request with the required CONN_ID header.
+
+    - flags = 0: Create a folder. Include the NAME header.
+    - flags = 2: Navigate to the root or a child folder. Include the
+      NAME header. Use an empty string for root navigation.
+    - flags = 3: Navigate to the parent folder. Do not include the
+      NAME header.
     """
     mopl = btp.ftp_get_info(FtpInfo.MOPL)
     conn_id = btp.ftp_get_info(FtpInfo.CONN_ID)
-    # Always include NAME header (empty for root/backup, folder name for navigate-down).
-    hdr = {OBEXHdr.CONN_ID: conn_id, OBEXHdr.NAME: folder_name}
+    hdr = {OBEXHdr.CONN_ID: conn_id}
+    if flags != 0x03:
+        hdr[OBEXHdr.NAME] = folder_name
     encoded_hdr, _, _ = btp.ftp_enc_hdr(hdr, mopl - 3, 0)
     btp.ftp_client_set_folder(flags=flags, buf=encoded_hdr)
     btp.ftp_rx_data_get(defs.BTP_FTP_EV_CLIENT_SET_FOLDER)
