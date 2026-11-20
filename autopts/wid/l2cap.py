@@ -1218,3 +1218,12 @@ def hdl_wid_278(_: WIDParams):
             return False
 
     return True
+
+
+def hdl_wid_282(_: WIDParams):
+    '''
+    Please confirm the Upper Tester received 'Not Supported(=0x0001)' result of the Information
+    Request Response.
+    Click Yes if the IUT sent 'Not Supported(=0x0001)' to the Upper Tester. Otherwise click No.
+    '''
+    return True

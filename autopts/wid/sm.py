@@ -35,7 +35,9 @@ def hdl_wid_100(params: WIDParams):
     get_stack().gap.wait_for_connection(30)
 
     if params.test_case_name in ['SM/CEN/SCCT/BV-03-C', 'SM/CEN/SCCT/BV-05-C',
-                                 'SM/CEN/SCCT/BV-07-C', 'SM/CEN/SCCT/BV-09-C']:
+                                 'SM/CEN/SCCT/BV-07-C', 'SM/CEN/SCCT/BV-09-C',
+                                 'SM/CEN/SCCT/BV-10-C', 'SM/CEN/SCCT/BV-11-C',
+                                 'SM/CEN/SCCT/BV-12-C', 'SM/CEN/SCCT/BV-13-C',]:
         btp.gap_pair()
 
     return True
@@ -58,12 +60,14 @@ def hdl_wid_102(params: WIDParams):
         SM_TEST_CASE_NAME = params.test_case_name
         SM_ACL_DISCONN_ROUND = 0
 
-    if params.test_case_name in ['SM/CEN/SCCT/BV-03-C', 'SM/CEN/SCCT/BV-05-C']:
+    if params.test_case_name in ['SM/CEN/SCCT/BV-03-C', 'SM/CEN/SCCT/BV-05-C',
+                                 'SM/CEN/SCCT/BV-10-C', 'SM/CEN/SCCT/BV-11-C']:
         if SM_ACL_DISCONN_ROUND == 1:
             btp.gap_disconnect()
         else:
             btp.gap_disconnect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
-    elif params.test_case_name in ['SM/CEN/SCCT/BV-07-C', 'SM/CEN/SCCT/BV-09-C']:
+    elif params.test_case_name in ['SM/CEN/SCCT/BV-07-C', 'SM/CEN/SCCT/BV-09-C',
+                                   'SM/CEN/SCCT/BV-12-C', 'SM/CEN/SCCT/BV-13-C']:
         if SM_ACL_DISCONN_ROUND == 1:
             btp.gap_disconnect(bd_addr_type=defs.BTP_BR_ADDRESS_TYPE)
         else:
